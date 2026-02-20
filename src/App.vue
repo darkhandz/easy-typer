@@ -59,6 +59,10 @@
               <i class="el-icon-data-line"></i>
               <span slot="title">跟打历史</span>
             </el-menu-item>
+            <el-menu-item index="/history-typing-report">
+              <i class="el-icon-document"></i>
+              <span slot="title">历史慢字统计</span>
+            </el-menu-item>
             <el-menu-item index="/summary">
               <i class="el-icon-s-data"></i>
               <span slot="title">键盘统计</span>

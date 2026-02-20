@@ -24,6 +24,9 @@
     "dayjs": "^1.11.7",
     "uuid": "^9.0.0"
   },
+  "resolutions": {
+    "@achrinza/node-ipc": "^10.1.0"
+  },
   "devDependencies": {
     "@types/echarts": "^4.9.4",
     "@types/jest": "^24.0.19",
@@ -57,10 +60,10 @@
     "github-markdown-css": "^4.0.0",
     "heatmap.js": "^2.0.5",
     "lint-staged": "^9.5.0",
-    "node-sass": "^8.0.0",
     "prerender-spa-plugin": "^3.2.1",
     "raw-loader": "^4.0.2",
     "register-service-worker": "^1.7.1",
+    "sass": "^1.97.3",
     "sass-loader": "^10.4.1",
     "showdown": "^1.9.1",
     "sitemap-webpack-plugin": "^1.1.1",

@@ -86,6 +86,14 @@ const routes: Array<RouteConfig> = [
     component: () => import(/* webpackChunkName: "about" */ '../views/History.vue')
   },
   {
+    path: '/history-typing-report',
+    name: 'HistoryTypingReport',
+    meta: {
+      title: '历史慢字统计 - 木易跟打器'
+    },
+    component: () => import(/* webpackChunkName: "report" */ '../views/HistoryTypingReport.vue')
+  },
+  {
     path: '/buy-me-a-coffee',
     name: 'Donate',
     meta: {

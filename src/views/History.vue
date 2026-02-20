@@ -16,7 +16,7 @@
 import { Component, Vue, Watch } from 'vue-property-decorator'
 import IndicatorSimple from '@/components/IndicatorSimple.vue'
 import Achievements from '@/components/Achievements.vue'
-import { namespace } from 'vuex-class'
+import { namespace, Mutation } from 'vuex-class'
 
 import * as echarts from 'echarts/core'
 import { BarChart, BarSeriesOption, LineChart, LineSeriesOption } from 'echarts/charts'
@@ -54,12 +54,27 @@ export default class History extends Vue {
   @record.Action('loaded')
   private recordLoaded!: Function
 
-  created () {
-    db.achievement.toArray().then(achievements => {
+  @Mutation('updateAchievements')
+  private updateAchievements!: Function
+
+  @Mutation('updateTotalAchievements')
+  private updateTotalAchievements!: Function
+
+  async created () {
+    try {
+      const achievements = await db.achievement.toArray()
       this.recordLoaded(achievements)
-    }, (error) => {
+
+      // 加载最近10条成绩到 Vuex
+      const recentAchievements = await db.achievement.reverse().limit(10).toArray()
+      this.updateAchievements(recentAchievements)
+
+      // 更新总数
+      const total = await db.achievement.count()
+      this.updateTotalAchievements(total)
+    } catch (error) {
       console.log(error)
-    })
+    }
   }
 
   @Watch('dates')

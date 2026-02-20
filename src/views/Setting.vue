@@ -187,6 +187,57 @@
             <el-switch v-model="form.replaceSymbol"/>
           </el-form-item>
         </el-tab-pane>
+        <el-tab-pane label="打字报告设置" name="report">
+          <el-form-item label="慢字耗时阈值（秒）">
+            <el-input-number v-model="form.reportSlowThresholdDefault" :min="0.1" :max="4" :step="0.1" :precision="1"/>
+            <span class="el-upload__tip"> (打字报告中慢字筛选的默认阈值)</span>
+          </el-form-item>
+          <el-form-item label="错字颜色">
+            <el-color-picker v-model="form.reportColorError"/>
+          </el-form-item>
+          <el-divider content-position="left">时间分段配置</el-divider>
+          <div v-for="(bucket, index) in form.reportTimeBuckets" :key="index" class="time-bucket-item">
+            <el-card shadow="hover">
+              <div class="bucket-header">
+                <span class="bucket-title">分段 {{ index + 1 }}</span>
+                <el-button
+                  v-if="form.reportTimeBuckets.length > 1"
+                  type="danger"
+                  size="mini"
+                  icon="el-icon-delete"
+                  circle
+                  @click="removeBucket(index)"
+                />
+              </div>
+              <div class="bucket-content">
+                <div class="bucket-inputs">
+                  <el-form-item label="时间范围（秒）" label-width="17em">
+                    <div class="range-inputs">
+                      <el-input-number v-model="bucket.min" :min="0" :max="999" :step="0.1" :precision="1" size="small" style="width: 120px"/>
+                      <span style="margin: 0 8px">~</span>
+                      <el-input-number v-model="bucket.max" :min="0.1" :max="999" :step="0.1" :precision="1" size="small" style="width: 120px"/>
+                    </div>
+                  </el-form-item>
+                  <el-form-item label="颜色配置" label-width="17em">
+                    <div class="color-inputs">
+                      <span style="margin-right: 8px">文字</span>
+                      <el-color-picker v-model="bucket.textColor" size="small"/>
+                      <span style="margin: 0 16px 0 8px">背景</span>
+                      <el-color-picker v-model="bucket.bgColor" size="small"/>
+                    </div>
+                  </el-form-item>
+                </div>
+                <div class="bucket-preview">
+                  <div class="preview-label">预览</div>
+                  <div class="preview-char" :style="{ color: bucket.textColor, backgroundColor: bucket.bgColor }">
+                    例
+                  </div>
+                </div>
+              </div>
+            </el-card>
+          </div>
+          <el-button type="primary" icon="el-icon-plus" @click="addBucket">添加分段</el-button>
+        </el-tab-pane>
       </el-tabs>
       <el-form-item>
         <el-button type="primary" @click="submitForm">保存</el-button>
@@ -498,11 +549,95 @@ export default class Setting extends Vue {
         this.isCodingLoading = false
       })
   }
+
+  addBucket (): void {
+    this.form.reportTimeBuckets.push({
+      min: 0,
+      max: 1,
+      textColor: '#303133',
+      bgColor: '#909399'
+    })
+  }
+
+  removeBucket (index: number): void {
+    if (this.form.reportTimeBuckets.length > 1) {
+      this.form.reportTimeBuckets.splice(index, 1)
+    }
+  }
 }
 </script>
 
 <style lang="scss">
   .el-form-item {
     margin-top: 22px;
+  }
+
+  .time-bucket-item {
+    margin-bottom: 15px;
+
+    .bucket-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+
+      .bucket-title {
+        font-weight: bold;
+        font-size: 16px;
+        color: #303133;
+      }
+    }
+
+    .bucket-content {
+      display: flex;
+      gap: 20px;
+      align-items: flex-start;
+
+      .bucket-inputs {
+        flex: 1;
+
+        .range-inputs {
+          display: flex;
+          align-items: center;
+        }
+
+        .color-inputs {
+          display: flex;
+          align-items: center;
+        }
+      }
+
+      .bucket-preview {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 8px;
+        padding: 10px;
+
+        .preview-label {
+          font-size: 12px;
+          color: #909399;
+        }
+
+        .preview-char {
+          width: 48px;
+          height: 48px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 24px;
+          font-weight: bold;
+          border-radius: 4px;
+          border: 1px solid #dcdfe6;
+        }
+      }
+    }
+
+    .el-card {
+      .el-form-item {
+        margin-top: 10px;
+        margin-bottom: 10px;
+      }
+    }
   }
 </style>

@@ -1,9 +1,11 @@
 <template>
   <div>
-    <el-table border :data="achievements.slice(0, 10)" stripe="stripe" style="width:100%;" class="achievements-table" :cell-class-name="tableCellClassName">
+    <el-table border :data="achievements.slice(0, 10)" stripe="stripe" style="width:100%;" class="achievements-table" :cell-class-name="tableCellClassName" @row-click="handleRowClick">
       <el-table-column prop="title" type="expand" label="">
         <template slot-scope="$props">
-          <el-button @click="handleCopy($props.row)" type="text" size="medium">复制</el-button> {{ generateRecord($props.row) }}
+          <el-button @click.stop="handleCopy($props.row)" type="text" size="medium">复制</el-button>
+          <el-button v-if="$props.row.reportId" @click.stop="handleViewReport($props.row)" type="text" size="medium">查看报告</el-button>
+          {{ generateRecord($props.row) }}
         </template>
       </el-table-column>
       <el-table-column prop="identity" label="段号" min-width="80"/>
@@ -33,21 +35,31 @@
         :total="totalAchievement">
       </el-pagination>
     </div>
+    <TypingReportDialog
+      :show.sync="reportDialogVisible"
+      :content="reportContent"
+      :report-chars="reportChars"
+    />
   </div>
 </template>
 
 <script lang="ts">
-import { Achievement, RacingState } from '@/store/types'
-import { Component, Vue } from 'vue-property-decorator'
+import { Achievement, RacingState, TypingReportChar } from '@/store/types'
+import { Component, Vue, Watch } from 'vue-property-decorator'
 import { Mutation, State } from 'vuex-class'
 import Clipboard from '@/store/util/Clipboard'
 import db from '../store/util/Database'
 import dayjs from 'dayjs'
+import TypingReportDialog from './TypingReportDialog.vue'
 
 const PAGE_SIZE = 10
 const SPEED_GAP = 30 // 速度阶梯，每30新增一个颜色
 
-@Component
+@Component({
+  components: {
+    TypingReportDialog
+  }
+})
 export default class Achievements extends Vue {
   @State('achievements')
   private achievements!: Array<Achievement>
@@ -57,6 +69,33 @@ export default class Achievements extends Vue {
 
   @Mutation('updateAchievements')
   private updateAchievements!: Function
+
+  @Mutation('updateTotalAchievements')
+  private updateTotalAchievements!: Function
+
+  private reportDialogVisible = false
+  private reportContent = ''
+  private reportChars: TypingReportChar[] = []
+
+  async created (): Promise<void> {
+    // 如果 Vuex 中没有数据，自己加载
+    if (this.achievements.length === 0) {
+      try {
+        const recentAchievements = await db.achievement.reverse().limit(10).toArray()
+        this.updateAchievements(recentAchievements)
+
+        const total = await db.achievement.count()
+        this.updateTotalAchievements(total)
+      } catch (error) {
+        console.error('[Achievements] Failed to load from DB:', error)
+      }
+    }
+  }
+
+  @Watch('achievements')
+  onAchievementsChange (newVal: Achievement[]): void {
+    // 监听 achievements 变化，确保组件响应数据更新
+  }
 
   titleFormatter (row: Achievement, column: number, value: string) {
     return (value || '未知').slice(0, 16)
@@ -124,6 +163,39 @@ export default class Achievements extends Vue {
     }, () => {
       this.$message.warning('你的浏览器暂不支持自动复制')
     })
+  }
+
+  handleRowClick (row: Achievement): void {
+    if (row.reportId) {
+      this.handleViewReport(row)
+    }
+  }
+
+  async handleViewReport (row: Achievement): Promise<void> {
+    if (!row.reportId) {
+      this.$message.warning('该成绩没有打字报告')
+      return
+    }
+
+    try {
+      const report = await db.typingReport.get(row.reportId)
+      if (!report) {
+        this.$message.error('打字报告不存在')
+        return
+      }
+
+      const chars = await db.typingReportChar
+        .where('reportId')
+        .equals(row.reportId)
+        .toArray()
+
+      this.reportContent = report.content
+      this.reportChars = chars
+      this.reportDialogVisible = true
+    } catch (error) {
+      console.error('加载打字报告失败:', error)
+      this.$message.error('加载打字报告失败')
+    }
   }
 }
 </script>

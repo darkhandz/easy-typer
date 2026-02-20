@@ -5,6 +5,7 @@ import { accuracyRank, isMobile, speedRank } from './util/common'
 import db from './util/Database'
 import { keyboard } from './util/keyboard'
 import { Message } from 'element-ui'
+import { ReportBuilder } from './util/ReportBuilder'
 
 const statusMap = new Map<string, string>([
   ['init', '初始化'],
@@ -63,6 +64,9 @@ const finished = (strategy: string, input: string, content: string, last: string
 }
 
 const state = new RacingState()
+
+// 报告构建器实例
+let reportBuilder: ReportBuilder | null = null
 
 const getters: GetterTree<RacingState, QuickTypingState> = {
   statusText ({ status }): string {
@@ -329,10 +333,12 @@ const mutations: MutationTree<RacingState> = {
     state.status = 'init'
   },
 
-  start (state): void {
+  start (state, content: string): void {
     state.status = 'typing'
     state.start = Date.now()
     state.time = 0
+    // 初始化报告构建器
+    reportBuilder = new ReportBuilder(content)
   },
 
   finish (state, payload): void {
@@ -365,6 +371,8 @@ const mutations: MutationTree<RacingState> = {
     state.status = 'init'
     state.retry = retry
     state.timer = 0
+    // 清空报告构建器
+    reportBuilder = null
   },
 
   typing (state, { e, altSelectKey }: { e: KeyboardEvent; altSelectKey: string }): void {
@@ -385,6 +393,11 @@ const mutations: MutationTree<RacingState> = {
 
   accept (state, input: string): void {
     state.input = input
+    // 记录输入变化到报告构建器
+    if (reportBuilder) {
+      const activeMs = state.time + (state.status === 'typing' ? Date.now() - state.start : 0)
+      reportBuilder.recordInput(input, activeMs)
+    }
   },
 
   replace (state, count: number): void {
@@ -453,7 +466,7 @@ const actions: ActionTree<RacingState, QuickTypingState> = {
         }
       }, interval)
       commit('timer', id)
-      commit('start')
+      commit('start', rootState.article.content)
     }
 
     const { altSelectKey } = rootState.setting
@@ -525,7 +538,48 @@ const actions: ActionTree<RacingState, QuickTypingState> = {
         const achievement = getters.achievement
         if (achievement.typeSpeed > 0) {
           this.dispatch('addAchievements', achievement, { root: true })
-          db.achievement.add(achievement)
+
+          // 保存成绩和报告数据
+          const reportData = reportBuilder ? reportBuilder.build() : []
+          const contentHash = eapi.sha1Hmac(article.content)
+
+          db.transaction('rw', db.achievement, db.typingReport, db.typingReportChar, async () => {
+            const achievementId = await db.achievement.add(achievement)
+
+            if (reportData.length > 0) {
+              const typingReport = {
+                achievementId,
+                finishedTime: Date.now(),
+                articleIdentity: String(article.identity || '1'),
+                articleTitle: article.title,
+                content: article.content,
+                contentHash,
+                version: 1
+              }
+
+              const reportId = await db.typingReport.add(typingReport)
+
+              const charRecords = reportData.map(char => ({
+                ...char,
+                reportId,
+                finishedTime: typingReport.finishedTime
+              }))
+
+              await db.typingReportChar.bulkAdd(charRecords)
+
+              // 更新 achievement 的 reportId
+              achievement.id = achievementId
+              achievement.reportId = reportId
+
+              // 更新数据库中的 achievement 记录
+              await db.achievement.update(achievementId, { reportId })
+            }
+          }).catch(err => {
+            console.error('保存打字报告失败:', err)
+          })
+
+          // 清空报告构建器
+          reportBuilder = null
         }
 
         if (kata.criteriaOpen) {

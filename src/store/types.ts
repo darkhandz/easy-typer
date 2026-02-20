@@ -649,6 +649,25 @@ export class SettingState {
    * 上次配置更新时间
    */
   lastUpdatedTime = 1708914220000
+
+  /**
+   * 报告慢字阈值默认值(秒)
+   */
+  reportSlowThresholdDefault = 1.0
+  /**
+   * 报告颜色配置 - 错字
+   */
+  reportColorError = '#F52C2C'
+  /**
+   * 报告时间分段配置(动态可配置)
+   */
+  reportTimeBuckets = [
+    { min: 0, max: 0.3, textColor: '#AEAEAE', bgColor: '#EAEAEA' },
+    { min: 0.3, max: 0.5, textColor: '#F4F4F4', bgColor: '#99DAA2' },
+    { min: 0.5, max: 0.8, textColor: '#F4F4F4', bgColor: '#FDB140' },
+    { min: 0.8, max: 1.3, textColor: '#F4F4F4', bgColor: '#FE911C' },
+    { min: 1.3, max: 999, textColor: '#F4F4F4', bgColor: '#FE6933' }
+  ]
 }
 
 export interface LoginUser {
@@ -665,6 +684,35 @@ export class LoginState {
   authenticated = false;
   token = '';
   user: LoginUser | null = null;
+}
+
+/**
+ * 打字报告主表
+ */
+export class TypingReport {
+  id?: number
+  achievementId = 0
+  finishedTime = Date.now()
+  articleIdentity = ''
+  articleTitle = ''
+  content = ''
+  contentHash = ''
+  version = 1
+}
+
+/**
+ * 打字报告字符级统计
+ */
+export class TypingReportChar {
+  id?: number
+  reportId = 0
+  finishedTime = Date.now()
+  idx = 0
+  char = ''
+  durationMs = 0
+  backspaceCount = 0
+  mistyped = false
+  isCjk = false
 }
 
 export class Achievement {
@@ -713,4 +761,8 @@ export class Achievement {
     */
    pauseTime = 0;
    finishedTime = Date.now();
+   /**
+    * 打字报告ID
+    */
+   reportId?: number;
 }

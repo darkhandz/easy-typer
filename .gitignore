@@ -26,3 +26,4 @@ pnpm-debug.log*
 
 # 自动编译
 /docs
+.ace-tool/

@@ -1,5 +1,5 @@
 import Dexie from 'dexie'
-import { Achievement, Identity, LooseObject, SettingState } from '../types'
+import { Achievement, Identity, LooseObject, SettingState, TypingReport, TypingReportChar } from '../types'
 import { TrieNode } from './TrieTree'
 
 class QuickTypingDatabase extends Dexie {
@@ -19,6 +19,14 @@ class QuickTypingDatabase extends Dexie {
    * 成绩
    */
   achievement: Dexie.Table<Achievement, number>
+  /**
+   * 打字报告主表
+   */
+  typingReport: Dexie.Table<TypingReport, number>
+  /**
+   * 打字报告字符级统计
+   */
+  typingReportChar: Dexie.Table<TypingReportChar, number>
 
   constructor (databaseName: string) {
     super(databaseName)
@@ -43,10 +51,30 @@ class QuickTypingDatabase extends Dexie {
       bookShelf: ''
     })
 
+    this.version(5).stores({
+      configs: '',
+      summary: '',
+      achievement: '++',
+      bookShelf: '',
+      typingReport: '++id, achievementId, finishedTime, contentHash',
+      typingReportChar: '++id, reportId, finishedTime, durationMs, mistyped, isCjk, [reportId+idx], [finishedTime+durationMs]'
+    })
+
+    this.version(6).stores({
+      configs: '',
+      summary: '',
+      achievement: '++, reportId',
+      bookShelf: '',
+      typingReport: '++id, achievementId, finishedTime, contentHash',
+      typingReportChar: '++id, reportId, finishedTime, durationMs, mistyped, isCjk, [reportId+idx], [finishedTime+durationMs]'
+    })
+
     this.configs = this.table('configs')
     this.summary = this.table('summary')
     this.achievement = this.table('achievement')
     this.bookShelf = this.table('bookShelf')
+    this.typingReport = this.table('typingReport')
+    this.typingReportChar = this.table('typingReportChar')
   }
 }
 

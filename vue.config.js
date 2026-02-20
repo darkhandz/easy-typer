@@ -31,6 +31,14 @@ process.env.VUE_APP_WEB_VERSION = version
 const name = '木易跟打器'
 
 module.exports = {
+  css: {
+    loaderOptions: {
+      sass: {
+        // Optional: add global variables or mixins
+        // additionalData: `@import "@/styles/variables.scss";`
+      },
+    },
+  },
   pwa: {
     name,
     iconPaths: {
