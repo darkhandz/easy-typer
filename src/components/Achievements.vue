@@ -39,6 +39,7 @@
       :show.sync="reportDialogVisible"
       :content="reportContent"
       :report-chars="reportChars"
+      :achievement="reportAchievement"
     />
   </div>
 </template>
@@ -76,6 +77,7 @@ export default class Achievements extends Vue {
   private reportDialogVisible = false
   private reportContent = ''
   private reportChars: TypingReportChar[] = []
+  private reportAchievement: Achievement | null = null
 
   async created (): Promise<void> {
     // 如果 Vuex 中没有数据，自己加载
@@ -191,6 +193,7 @@ export default class Achievements extends Vue {
 
       this.reportContent = report.content
       this.reportChars = chars
+      this.reportAchievement = row
       this.reportDialogVisible = true
     } catch (error) {
       console.error('加载打字报告失败:', error)

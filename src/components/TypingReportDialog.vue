@@ -25,6 +25,7 @@
           :content="content"
           :charData="charDataMap"
           :highlightIdx="highlightIdx"
+          :achievement="achievement"
         />
       </div>
     </div>
@@ -64,6 +65,9 @@ export default class TypingReportDialog extends Vue {
 
   @Prop({ type: Array, default: () => [] })
   private reportChars!: TypingReportChar[]
+
+  @Prop({ type: Object, default: null })
+  private achievement!: any
 
   @setting.State('reportSlowThresholdDefault')
   private defaultThreshold!: number
