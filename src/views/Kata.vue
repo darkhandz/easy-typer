@@ -146,6 +146,7 @@ import { shuffle, isMobile } from '@/store/util/common'
 import { noop } from 'vue-class-component/lib/util'
 import eapi from '@/api/easyTyper'
 import { KataOptions } from '@/models/articleModels'
+import { localKataData } from '@/data/localKataData'
 
 const article = namespace('article')
 const kata = namespace('kata')
@@ -286,9 +287,21 @@ export default class Home extends Vue {
     }
 
     const subOption = this.contentOptions.find(o => o.value === rootName)
-    const current = subOption ? subOption.children.find(s => s.value === name) : null
+    const current = subOption?.children?.find(s => s.value === name)
 
-    current && eapi.getKataOptionById(current?.id || -1)
+    if (!current) {
+      return
+    }
+
+    // 如果是本地数据（id < 0），直接使用 content
+    if (current.id && current.id < 0 && current.content) {
+      this.articleText = current.content
+      this.dialogTitle = current.label
+      return
+    }
+
+    // 否则从远程获取
+    eapi.getKataOptionById(current.id || -1)
       .then(ret => {
         this.articleText = ret.content
         this.dialogTitle = `${ret.title}`
@@ -384,9 +397,18 @@ export default class Home extends Vue {
   created () {
     this.init()
 
+    // 先加载本地数据
+    this.contentOptions = [...localKataData]
+
+    // 然后尝试加载远程数据并合并
     eapi.getKataList()
       .then(options => {
-        this.contentOptions = options
+        // 合并本地和远程数据
+        this.contentOptions = [...localKataData, ...options]
+      })
+      .catch(err => {
+        console.warn('无法加载远程练习文本，使用本地数据:', err)
+        // 网络失败时已经有本地数据，不需要额外处理
       })
   }
 

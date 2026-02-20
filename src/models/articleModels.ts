@@ -14,8 +14,10 @@ export interface KataOptions {
   value: string;
   label: string;
   id?: number;
-  children: KataOptions[];
+  children?: KataOptions[];
   isRemote?: number;
+  content?: string;
+  textType?: number;
 }
 
 export interface KataOption {
