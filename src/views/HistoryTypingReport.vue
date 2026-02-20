@@ -19,20 +19,26 @@
             value-format="timestamp"
             size="small"
           />
-          <el-button-group class="quick-selectors">
-            <el-button size="small" @click="selectTimeRange(15)">最近15分钟</el-button>
-            <el-button size="small" @click="selectTimeRange(30)">最近30分钟</el-button>
-            <el-button size="small" @click="selectTimeRange(60)">最近1小时</el-button>
-            <el-button size="small" @click="selectTimeRange(120)">最近2小时</el-button>
-            <el-button size="small" @click="selectTimeRange(1440)">最近1天</el-button>
-            <el-button size="small" @click="selectTimeRange(4320)">最近3天</el-button>
-            <el-button size="small" @click="selectTimeRange(10080)">最近7天</el-button>
-          </el-button-group>
           <el-button type="primary" size="small" @click="loadData">查询</el-button>
+          <el-button type="primary" size="small" icon="el-icon-document-copy" @click="handleCopy" >
+            复制筛选结果
+          </el-button>
+          <div>
+          <span class="filter-label">快捷查询：</span>
+          <el-button-group class="quick-selectors">
+            <el-button size="small" @click="selectTimeRange(15)">15分钟内</el-button>
+            <el-button size="small" @click="selectTimeRange(30)">30分钟内</el-button>
+            <el-button size="small" @click="selectTimeRange(60)">1小时内</el-button>
+            <el-button size="small" @click="selectTimeRange(120)">2小时内</el-button>
+            <el-button size="small" @click="selectTimeRange(1440)">1天内</el-button>
+            <el-button size="small" @click="selectTimeRange(4320)">3天内</el-button>
+            <el-button size="small" @click="selectTimeRange(10080)">7天内</el-button>
+          </el-button-group>
+          </div>
         </div>
 
         <div class="duration-filter">
-          <span class="filter-label">耗时筛选：</span>
+          <span class="filter-label">耗时筛选（只显示耗时≥此值的文字）：</span>
           <el-slider
             v-model="threshold"
             :min="minThreshold"
@@ -50,14 +56,26 @@
             size="small"
             class="filter-input"
           />
-          <el-button
-            type="primary"
+        </div>
+
+        <div class="count-filter">
+          <span class="filter-label">文章筛选（只统计字数≥此值的文章）：</span>
+          <el-slider
+            v-model="countThreshold"
+            :min="5"
+            :max="2000"
+            :step="5"
+            :show-tooltip="false"
+            class="filter-slider"
+          />
+          <el-input-number
+            v-model="countThreshold"
+            :min="5"
+            :max="2000"
+            :step="5"
             size="small"
-            icon="el-icon-document-copy"
-            @click="handleCopy"
-          >
-            复制
-          </el-button>
+            class="filter-input"
+          />
         </div>
       </div>
 
@@ -101,9 +119,27 @@
           align="center"
         >
           <template slot-scope="scope">
-            {{ (scope.row.durationMs / 1000).toFixed(3) }}
+            <el-tooltip placement="top" :open-delay="200">
+              <div slot="content">
+                <div style="max-height: 300px; overflow-y: auto;">
+                  <div style="font-weight: bold; margin-bottom: 5px;">所有耗时记录（秒）：</div>
+                  <div v-for="(duration, index) in scope.row.allDurations" :key="index" style="line-height: 1.5;">
+                    {{ index + 1 }}. {{ (duration / 1000).toFixed(3) }}
+                  </div>
+                </div>
+              </div>
+              <span style="cursor: help; border-bottom: 1px dashed #409EFF;">
+                {{ (scope.row.durationMs / 1000).toFixed(3) }}
+              </span>
+            </el-tooltip>
           </template>
         </el-table-column>
+        <el-table-column
+          prop="count"
+          label="字数"
+          sortable="custom"
+          align="center"
+        />
         <el-table-column
           prop="backspaceCount"
           label="回改次数"
@@ -116,7 +152,7 @@
 </template>
 
 <script lang="ts">
-import { Component, Vue } from 'vue-property-decorator'
+import { Component, Vue, Watch } from 'vue-property-decorator'
 import { namespace } from 'vuex-class'
 import db from '@/store/util/Database'
 
@@ -127,7 +163,9 @@ interface AggregatedChar {
   durationMs: number;
   backspaceCount: number;
   mistyped: boolean;
+  count: number;
   selected: boolean;
+  allDurations: number[];
 }
 
 @Component
@@ -141,9 +179,11 @@ export default class HistoryTypingReport extends Vue {
   private startTime: number = Date.now() - 24 * 60 * 60 * 1000
   private endTime: number = Date.now()
   private threshold = 0.5
+  private countThreshold = 10
   private chars: AggregatedChar[] = []
   private sortProp = ''
   private sortOrder = ''
+  private countThresholdTimer: number | null = null
 
   created (): void {
     this.threshold = this.defaultThreshold
@@ -168,36 +208,67 @@ export default class HistoryTypingReport extends Vue {
     this.loadData()
   }
 
+  @Watch('countThreshold')
+  onCountThresholdChange (): void {
+    // 防抖：延迟 500ms 后再执行，避免拖动滑条时频繁触发
+    if (this.countThresholdTimer !== null) {
+      clearTimeout(this.countThresholdTimer)
+    }
+    this.countThresholdTimer = window.setTimeout(() => {
+      this.loadData()
+      this.countThresholdTimer = null
+    }, 500)
+  }
+
   async loadData (): Promise<void> {
     try {
+      // 先查询时间范围内的所有报告
+      const reports = await db.typingReport
+        .where('finishedTime')
+        .between(this.startTime, this.endTime)
+        .toArray()
+
+      // 过滤出字数大于等于阈值的报告
+      const validReportIds = new Set(
+        reports
+          .filter(report => report.content.length >= this.countThreshold && report.id !== undefined)
+          .map(report => report.id as number)
+      )
+
+      // 查询这些报告对应的字符数据
       const chars = await db.typingReportChar
         .where('finishedTime')
         .between(this.startTime, this.endTime)
         .toArray()
 
-      // 按字符聚合统计
+      // 按字符聚合统计（只统计有效报告的字符）
       const charMap = new Map<string, AggregatedChar>()
       chars.forEach(char => {
         if (!char.isCjk) return
+        if (!validReportIds.has(char.reportId)) return // 过滤掉不符合字数要求的报告
 
         const existing = charMap.get(char.char)
         if (existing) {
           existing.durationMs = Math.max(existing.durationMs, char.durationMs)
           existing.backspaceCount += char.backspaceCount
           existing.mistyped = existing.mistyped || char.mistyped
+          existing.count += 1
+          existing.allDurations.push(char.durationMs)
         } else {
           charMap.set(char.char, {
             char: char.char,
             durationMs: char.durationMs,
             backspaceCount: char.backspaceCount,
             mistyped: char.mistyped,
-            selected: true
+            count: 1,
+            selected: true,
+            allDurations: [char.durationMs]
           })
         }
       })
 
       this.chars = Array.from(charMap.values())
-      this.$message.success(`加载了 ${this.chars.length} 个字符的统计数据`)
+      this.$message.success(`加载了 ${this.chars.length} 个字符的统计数据（来自 ${validReportIds.size} 篇文章）`)
     } catch (error) {
       console.error('加载历史报告失败:', error)
       this.$message.error('加载历史报告失败')
@@ -286,6 +357,31 @@ export default class HistoryTypingReport extends Vue {
     }
 
     .duration-filter {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+      padding: 10px;
+      background: #f5f7fa;
+      border-radius: 4px;
+      margin-bottom: 10px;
+
+      .filter-label {
+        white-space: nowrap;
+        font-size: 14px;
+        color: #606266;
+      }
+
+      .filter-slider {
+        flex: 1;
+        min-width: 100px;
+      }
+
+      .filter-input {
+        width: 120px;
+      }
+    }
+
+    .count-filter {
       display: flex;
       align-items: center;
       gap: 15px;
