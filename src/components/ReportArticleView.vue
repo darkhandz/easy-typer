@@ -5,6 +5,7 @@
         v-for="(char, index) in contentChars"
         :key="index"
         class="char-item"
+        :class="{ 'highlight-flash': highlightIdx === index }"
         :style="getCharStyle(index)"
       >
         <span class="char-text">{{ char }}</span>
@@ -39,6 +40,9 @@ export default class ReportArticleView extends Vue {
 
   @Prop({ type: Map, default: () => new Map() })
   private charData!: Map<number, CharData>
+
+  @Prop({ type: Number, default: -1 })
+  private highlightIdx!: number
 
   @setting.State('reportColorError')
   private colorError!: string
@@ -112,6 +116,12 @@ export default class ReportArticleView extends Vue {
       border-radius: 2px;
       min-width: 32px;
       vertical-align: top;
+      transition: transform 0.3s ease;
+
+      &.highlight-flash {
+        animation: flash-highlight 1s ease;
+        z-index: 10;
+      }
 
       .char-text {
         display: block;
@@ -142,6 +152,25 @@ export default class ReportArticleView extends Vue {
         }
       }
     }
+  }
+}
+
+@keyframes flash-highlight {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: none;
+  }
+  25% {
+    transform: scale(1.2);
+    box-shadow: 0 0 15px 5px #409EFF;
+  }
+  50% {
+    transform: scale(1);
+    box-shadow: 0 0 10px 3px #409EFF;
+  }
+  75% {
+    transform: scale(1.2);
+    box-shadow: 0 0 15px 5px #409EFF;
   }
 }
 </style>

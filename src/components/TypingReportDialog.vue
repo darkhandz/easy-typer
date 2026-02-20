@@ -17,12 +17,14 @@
         <ReportCharTable
           :chars="filteredChars"
           :threshold="threshold"
+          @row-click="handleCharClick"
         />
       </div>
       <div class="report-right">
         <ReportArticleView
           :content="content"
           :charData="charDataMap"
+          :highlightIdx="highlightIdx"
         />
       </div>
     </div>
@@ -67,6 +69,8 @@ export default class TypingReportDialog extends Vue {
   private defaultThreshold!: number
 
   private threshold = 1.0
+  private highlightIdx = -1
+  private highlightTimer: number | null = null
 
   @Watch('show')
   onShowChange (val: boolean): void {
@@ -135,6 +139,22 @@ export default class TypingReportDialog extends Vue {
     } else {
       this.$message.warning('浏览器不支持剪贴板操作')
     }
+  }
+
+  handleCharClick (idx: number): void {
+    // 清除之前的定时器
+    if (this.highlightTimer !== null) {
+      clearTimeout(this.highlightTimer)
+    }
+
+    this.highlightIdx = idx
+    // 重置高亮，以便下次点击同一个字符时也能触发动画
+    this.$nextTick(() => {
+      this.highlightTimer = window.setTimeout(() => {
+        this.highlightIdx = -1
+        this.highlightTimer = null
+      }, 1000)
+    })
   }
 }
 </script>

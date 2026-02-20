@@ -6,6 +6,7 @@
       stripe
       size="small"
       @sort-change="handleSortChange"
+      @row-click="handleRowClick"
     >
       <el-table-column
         type="index"
@@ -92,6 +93,10 @@ export default class ReportCharTable extends Vue {
   handleSortChange ({ prop, order }: { prop: string; order: string }): void {
     this.sortProp = prop
     this.sortOrder = order
+  }
+
+  handleRowClick (row: TypingReportChar): void {
+    this.$emit('row-click', row.idx)
   }
 }
 </script>
