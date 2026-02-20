@@ -770,15 +770,10 @@ export default class Home extends Vue {
         // 重打
         this.retry()
         break
-      case 'Escape':
-        e.preventDefault()
-        // 暂停
-        this.pause()
-        break
       case 'Enter':
         e.preventDefault()
-        // 恢复
-        this.resume()
+        // Enter 切换暂停/继续
+        this.trigger()
         break
       case 'F2':
         e.preventDefault()

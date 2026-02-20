@@ -3,7 +3,7 @@ export const statusMapText = new Map<string, string>([
   ['wait', '准备中'],
   ['finished', '已结束'],
   ['pause', '继续(Enter)'],
-  ['typing', '暂停(Esc)']
+  ['typing', '暂停(Enter)']
 ])
 
 export const statusMapType = new Map<string, string>([
