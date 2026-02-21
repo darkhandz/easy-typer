@@ -1,5 +1,5 @@
 <template>
-  <div :class="style">
+  <div :class="style" :data-word-id="word.id" :data-word-len="word.text.length">
     <span>{{ word.text }}</span>
     <label v-if="hasHint">{{ hintText }}</label>
   </div>

@@ -495,6 +495,15 @@ export class SettingState {
   articleRows = 4
 
   /**
+   * 文章滚动模式
+   *
+   * page - 当前“翻页/跳跃式”对齐
+   * line - 逐行跟随（当前行保持在垂直中心附近）
+   * char - 逐字跟随（每输入一个字符滚动一点点）
+   */
+  articleScrollMode: 'page' | 'line' | 'char' = 'page'
+
+  /**
    * 输入区行数
    */
   inputRows = 1

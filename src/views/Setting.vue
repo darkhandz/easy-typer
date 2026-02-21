@@ -22,6 +22,14 @@
           <el-form-item label="文章行数">
             <el-input type="number" v-model="form.articleRows"/>
           </el-form-item>
+          <el-form-item label="文章滚动">
+            <el-select v-model="form.articleScrollMode">
+              <el-option value="page" label="默认模式"/>
+              <el-option value="line" label="逐行居中"/>
+              <el-option value="char" label="逐字跟随"/>
+            </el-select>
+            <span class="el-upload__tip">文章字数过多时的自动滚动方式</span>
+          </el-form-item>
           <el-form-item label="输入区行数">
             <el-input type="number" v-model="form.inputRows"/>
           </el-form-item>

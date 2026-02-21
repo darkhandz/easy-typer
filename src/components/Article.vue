@@ -56,8 +56,17 @@ export default class Article extends Vue {
   @setting.State('articleRows')
   private articleRows!: number
 
+  @setting.State('articleScrollMode')
+  private articleScrollMode!: 'page' | 'line' | 'char'
+
   @setting.State('hintOptions')
   private hintOptions!: Array<string>
+
+  private scrollRafId = 0
+  private nextScrollTop: number | null = null
+
+  private measureCacheKey = ''
+  private cachedCharsPerLine = 0
 
   get articleStyle (): Array<string> {
     let mode = 'inline'
@@ -116,7 +125,7 @@ export default class Article extends Vue {
    */
   @Watch('progress')
   autoScroll (progress: number) {
-    const el = (this.$refs.board as Vue).$el
+    const el = (this.$refs.board as Vue).$el as HTMLElement
     const { clientHeight, scrollHeight } = el
     const scrollDistance = scrollHeight - clientHeight
     if (scrollDistance <= 0) {
@@ -124,20 +133,173 @@ export default class Article extends Vue {
     }
 
     if (progress === 0) {
-      el.scrollTop = 0
+      this.requestScrollTop(el, 0)
+      return
+    }
+
+    const active = this.getActiveElement(el)
+    if (!active) {
+      this.requestScrollTop(el, Math.min(progress * scrollDistance, scrollDistance))
+      return
+    }
+
+    const activeTop = this.getElementTop(el, active)
+
+    if (this.articleScrollMode === 'line') {
+      const lineHeight = this.getLineHeightPx(active)
+      const targetTop = activeTop - (clientHeight / 2 - lineHeight / 2)
+      this.requestScrollTop(el, targetTop, 'smooth')
+      return
+    }
+
+    if (this.articleScrollMode === 'char') {
+      const lineHeight = this.getLineHeightPx(active)
+      const charsPerLine = this.getCharsPerLine(el, active, lineHeight)
+      const charIndex = this.getCharIndexInLine(this.input.length, charsPerLine)
+      const fraction = charIndex / charsPerLine
+
+      const targetTop = activeTop - (clientHeight / 2 - lineHeight / 2) + fraction * lineHeight
+      this.requestScrollTop(el, targetTop)
       return
     }
 
     const suffixOffset = this.hint ? 2 : 1
     const baseOffset = (parseFloat(this.fontSize) + suffixOffset) * 12
+    const fixed = this.hint
+      ? Math.max(0, baseOffset * (this.articleRows - 1) - 0.5 * baseOffset)
+      : baseOffset * (this.articleRows - 1)
+    this.requestScrollTop(el, Math.max(0, activeTop - fixed))
+  }
 
-    const fixed = this.hint ? Math.max(0, baseOffset * (this.articleRows - 1) - 0.5 * baseOffset) : baseOffset * (this.articleRows - 1)
+  private getActiveElement (container: HTMLElement): HTMLElement | null {
+    const caret = this.input.length
+    const exact = container.querySelector(`[data-word-id="${caret}"]`) as HTMLElement | null
+    if (exact) {
+      return exact
+    }
 
-    const pending = document.querySelector('.code1,.code2,.code3,.code4,.pending') as HTMLElement
-    if (pending) {
-      el.scrollTop = Math.max(0, pending.offsetTop - fixed)
-    } else {
-      el.scrollTop = Math.min(progress * scrollDistance, scrollDistance)
+    const blocks = Array.from(container.querySelectorAll('[data-word-id][data-word-len]')) as HTMLElement[]
+    let best: HTMLElement | null = null
+    let bestStart = -1
+    for (const el of blocks) {
+      const start = Number(el.dataset.wordId)
+      const len = Number(el.dataset.wordLen)
+      if (!Number.isFinite(start) || !Number.isFinite(len) || len <= 0) {
+        continue
+      }
+      if (start <= caret && caret < start + len && start > bestStart) {
+        best = el
+        bestStart = start
+      }
+    }
+    if (best) {
+      return best
+    }
+
+    return container.querySelector('.pending,.code1,.code2,.code3,.code4') as HTMLElement | null
+  }
+
+  private getElementTop (container: HTMLElement, target: HTMLElement): number {
+    const containerRect = container.getBoundingClientRect()
+    const targetRect = target.getBoundingClientRect()
+    return targetRect.top - containerRect.top + container.scrollTop
+  }
+
+  private getLineHeightPx (el: HTMLElement): number {
+    const style = getComputedStyle(el)
+    const lineHeight = parseFloat(style.lineHeight || '')
+    if (Number.isFinite(lineHeight) && lineHeight > 0) {
+      return lineHeight
+    }
+
+    const rects = el.getClientRects()
+    if (rects.length > 0) {
+      return Math.max(1, rects[0].height)
+    }
+
+    const fontSize = parseFloat(style.fontSize || '')
+    if (Number.isFinite(fontSize) && fontSize > 0) {
+      return Math.max(1, fontSize * 1.2)
+    }
+
+    return 1
+  }
+
+  private getCharsPerLine (container: HTMLElement, sampleEl: HTMLElement, lineHeightPx: number): number {
+    const style = getComputedStyle(sampleEl)
+    const width = container.clientWidth
+    const font = style.font || `${style.fontWeight} ${style.fontSize} ${style.fontFamily}`
+    const letterSpacing = style.letterSpacing || 'normal'
+    const key = `${width}|${font}|${letterSpacing}`
+
+    if (key === this.measureCacheKey && this.cachedCharsPerLine > 0) {
+      return this.cachedCharsPerLine
+    }
+
+    const probe = document.createElement('span')
+    probe.textContent = '中'.repeat(100)
+    probe.style.position = 'fixed'
+    probe.style.left = '-9999px'
+    probe.style.top = '-9999px'
+    probe.style.whiteSpace = 'pre'
+    probe.style.font = font
+    probe.style.letterSpacing = letterSpacing
+    probe.style.lineHeight = `${lineHeightPx}px`
+    document.body.appendChild(probe)
+    const probeWidth = probe.getBoundingClientRect().width
+    document.body.removeChild(probe)
+
+    const charAdvance = probeWidth / 100
+    const charsPerLine = Math.max(1, Math.floor((width - 1) / Math.max(1, charAdvance)))
+
+    this.measureCacheKey = key
+    this.cachedCharsPerLine = charsPerLine
+    return charsPerLine
+  }
+
+  private getCharIndexInLine (typedLength: number, charsPerLine: number): number {
+    if (charsPerLine <= 1) {
+      return 0
+    }
+
+    const safeTypedLength = Math.max(0, Math.min(typedLength, this.content.length))
+    const prefix = this.content.slice(0, safeTypedLength)
+    const lastBreak = Math.max(prefix.lastIndexOf('\n'), prefix.lastIndexOf('\r'))
+    const sinceBreak = lastBreak >= 0 ? prefix.length - lastBreak - 1 : prefix.length
+    return sinceBreak % charsPerLine
+  }
+
+  private requestScrollTop (container: HTMLElement, top: number, behavior: 'instant' | 'smooth' = 'instant') {
+    const scrollDistance = container.scrollHeight - container.clientHeight
+    const clamped = Math.max(0, Math.min(top, scrollDistance))
+
+    if (behavior === 'smooth' && typeof container.scrollTo === 'function') {
+      const reducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      if (!reducedMotion) {
+        container.scrollTo({ top: clamped, behavior: 'smooth' })
+        return
+      }
+    }
+
+    this.nextScrollTop = clamped
+    if (this.scrollRafId) {
+      return
+    }
+
+    this.scrollRafId = requestAnimationFrame(() => {
+      this.scrollRafId = 0
+      if (this.nextScrollTop === null) {
+        return
+      }
+      container.scrollTop = this.nextScrollTop
+      this.nextScrollTop = null
+    })
+  }
+
+  beforeDestroy () {
+    if (this.scrollRafId) {
+      cancelAnimationFrame(this.scrollRafId)
+      this.scrollRafId = 0
     }
   }
 
