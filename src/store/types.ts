@@ -269,6 +269,10 @@ export class KataState {
    */
   criteriaAchieved = 1;
   /**
+   * 指标校验-是否需要连续达标
+   */
+  criteriaConsecutive = false;
+  /**
    * 当前段-已达标次数
    */
   achievedCount = 0;

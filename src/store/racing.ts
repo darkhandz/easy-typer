@@ -606,6 +606,9 @@ const actions: ActionTree<RacingState, QuickTypingState> = {
               handleNotAchieved()
             }
           } else {
+            if (kata.criteriaConsecutive && kata.achievedCount > 0) {
+              this.dispatch('kata/updateAchievedCount', 0)
+            }
             handleNotAchieved()
           }
         } else {

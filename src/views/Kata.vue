@@ -104,6 +104,12 @@
             @change="handleAchievedChange"
             class="form-field"
           ></el-input-number>
+          <el-checkbox
+            :value="criteriaConsecutive"
+            :disabled="isCriteriaDisabled"
+            @change="handleConsecutiveChange"
+            style="margin-left: 10px;"
+          >连续</el-checkbox>
         </el-form-item>
         <el-form-item label="未达标时『或』有错字时">
           <el-select
@@ -176,6 +182,9 @@ export default class Home extends Vue {
 
   @kata.State('criteriaAction')
   private criteriaAction!: string
+
+  @kata.State('criteriaConsecutive')
+  private criteriaConsecutive!: boolean
 
   @kata.Action('init')
   private init!: Function
@@ -355,6 +364,12 @@ export default class Home extends Vue {
   handleAchievedChange (criteriaAchieved: number) {
     this.updateCriteria({
       criteriaAchieved
+    })
+  }
+
+  handleConsecutiveChange (criteriaConsecutive: boolean) {
+    this.updateCriteria({
+      criteriaConsecutive
     })
   }
 
