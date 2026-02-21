@@ -24,7 +24,7 @@
                 <span class="val"><el-button type="text" size="mini">23 </el-button></span>
               </div> -->
               <el-button-group>
-                <el-tooltip :content="indicatorTooltipText" placement="top">
+                <el-tooltip v-if="showIndicator" :content="indicatorTooltipText" placement="top">
                   <el-button size="mini" icon="el-icon-caret-right" @click="toggleSidebar" class="indicator-real" style="width: 220px;">速度<span class="val">{{ typeSpeed }}</span> | 击键<span class="val">{{ hitSpeed }}</span> | 码长<span class="val">{{ codeLength }}</span></el-button>
                 </el-tooltip>
                 <!-- <el-tooltip content="手动载文" placement="top">
@@ -33,6 +33,7 @@
                 <!-- <el-tooltip content="剪贴板载文，可复制包含"段号+标题"的整段文本" placement="top">
                   <el-button size="mini" icon="el-icon-document" @click="loadFromClipboard">粘贴</el-button>
                 </el-tooltip> -->
+                <el-button size="mini" :icon="showIndicator ? 'el-icon-minus' : 'el-icon-view'" @click="toggleIndicatorVisible">{{ showIndicator ? '隐藏指标' : '显示指标' }}</el-button>
                 <el-button size="mini" icon="el-icon-refresh" @click="retry">重打(F3)</el-button>
                 <!-- <el-tooltip content="快速设置字号，字重，展示高度" placement="top">
                   <el-button size="mini" icon="el-icon-setting" v-popover:popoverStyle>样式</el-button>
@@ -406,6 +407,7 @@ export default class Home extends Vue {
   private tempFontWeight = 400
   private hasUpdated = false
   private wikiTypeMap = wikiTypeMap
+  private showIndicator = true
 
   commandHandlers: { [key: string]: () => void } = {
     loadClipboard: () => this.loadFromClipboard(),
@@ -760,6 +762,10 @@ export default class Home extends Vue {
 
   toggleSidebar () {
     this.toggleRawSidebar(!this.showSidebar)
+  }
+
+  toggleIndicatorVisible () {
+    this.showIndicator = !this.showIndicator
   }
 
   handleShortCut (e: KeyboardEvent): void {
