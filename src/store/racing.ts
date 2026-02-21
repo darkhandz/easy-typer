@@ -67,6 +67,7 @@ const state = new RacingState()
 
 // 报告构建器实例
 let reportBuilder: ReportBuilder | null = null
+let reportSnapshot: null | { content: string; articleIdentity: string; articleTitle: string } = null
 
 const getters: GetterTree<RacingState, QuickTypingState> = {
   statusText ({ status }): string {
@@ -333,12 +334,17 @@ const mutations: MutationTree<RacingState> = {
     state.status = 'init'
   },
 
-  start (state, content: string): void {
+  start (state, payload: { content: string; articleIdentity: string; articleTitle: string }): void {
     state.status = 'typing'
     state.start = Date.now()
     state.time = 0
     // 初始化报告构建器
-    reportBuilder = new ReportBuilder(content)
+    reportSnapshot = {
+      content: payload.content,
+      articleIdentity: payload.articleIdentity,
+      articleTitle: payload.articleTitle
+    }
+    reportBuilder = new ReportBuilder(payload.content)
   },
 
   finish (state, payload): void {
@@ -373,6 +379,7 @@ const mutations: MutationTree<RacingState> = {
     state.timer = 0
     // 清空报告构建器
     reportBuilder = null
+    reportSnapshot = null
   },
 
   typing (state, { e, altSelectKey }: { e: KeyboardEvent; altSelectKey: string }): void {
@@ -466,7 +473,11 @@ const actions: ActionTree<RacingState, QuickTypingState> = {
         }
       }, interval)
       commit('timer', id)
-      commit('start', rootState.article.content)
+      commit('start', {
+        content: rootState.article.content,
+        articleIdentity: String(rootState.article.identity || '1'),
+        articleTitle: rootState.article.title
+      })
     }
 
     const { altSelectKey } = rootState.setting
@@ -540,8 +551,13 @@ const actions: ActionTree<RacingState, QuickTypingState> = {
           this.dispatch('addAchievements', achievement, { root: true })
 
           // 保存成绩和报告数据
+          const snapshot = reportSnapshot
+          const snapshotContent = snapshot ? snapshot.content : article.content
+          const snapshotIdentity = snapshot ? snapshot.articleIdentity : String(article.identity || '1')
+          const snapshotTitle = snapshot ? snapshot.articleTitle : article.title
+
           const reportData = reportBuilder ? reportBuilder.build() : []
-          const contentHash = eapi.sha1Hmac(article.content)
+          const contentHash = eapi.sha1Hmac(snapshotContent)
 
           db.transaction('rw', db.achievement, db.typingReport, db.typingReportChar, async () => {
             const achievementId = await db.achievement.add(achievement)
@@ -550,9 +566,9 @@ const actions: ActionTree<RacingState, QuickTypingState> = {
               const typingReport = {
                 achievementId,
                 finishedTime: Date.now(),
-                articleIdentity: String(article.identity || '1'),
-                articleTitle: article.title,
-                content: article.content,
+                articleIdentity: snapshotIdentity,
+                articleTitle: snapshotTitle,
+                content: snapshotContent,
                 contentHash,
                 version: 1
               }
@@ -580,6 +596,7 @@ const actions: ActionTree<RacingState, QuickTypingState> = {
 
           // 清空报告构建器
           reportBuilder = null
+          reportSnapshot = null
         }
 
         if (kata.criteriaOpen) {
