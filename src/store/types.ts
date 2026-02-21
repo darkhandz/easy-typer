@@ -288,6 +288,14 @@ export class KataState {
    * 指标校验-操作 random乱序 retry重打 noop不处理
    */
   criteriaAction: 'noop' | 'random' | 'retry' = 'random';
+  /**
+   * 指标校验-最多练习次数（0表示不限制）
+   */
+  criteriaMaxCount = 0;
+  /**
+   * 当前段-已练习总次数
+   */
+  practiceTotalCount = 0;
 }
 
 export interface BookModel {

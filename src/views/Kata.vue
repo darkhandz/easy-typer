@@ -125,6 +125,18 @@
             <el-option label="不处理" value="noop"></el-option>
           </el-select>
         </el-form-item>
+        <el-form-item label="每段最大练习次数">
+          <el-input-number
+            size="small"
+            :value="criteriaMaxCount"
+            :min="0"
+            :max="999"
+            :step="1"
+            :disabled="isCriteriaDisabled"
+            @change="handleMaxCountChange"
+            class="form-field"
+          ></el-input-number>
+        </el-form-item>
       </el-form>
       <el-divider />
       <div class="right">
@@ -185,6 +197,9 @@ export default class Home extends Vue {
 
   @kata.State('criteriaConsecutive')
   private criteriaConsecutive!: boolean
+
+  @kata.State('criteriaMaxCount')
+  private criteriaMaxCount!: number
 
   @kata.Action('init')
   private init!: Function
@@ -376,6 +391,12 @@ export default class Home extends Vue {
   handleActionChange (criteriaAction: string) {
     this.updateCriteria({
       criteriaAction
+    })
+  }
+
+  handleMaxCountChange (criteriaMaxCount: number) {
+    this.updateCriteria({
+      criteriaMaxCount
     })
   }
 

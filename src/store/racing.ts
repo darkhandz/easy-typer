@@ -583,6 +583,10 @@ const actions: ActionTree<RacingState, QuickTypingState> = {
         }
 
         if (kata.criteriaOpen) {
+          // 递增本段练习总次数
+          const newPracticeCount = kata.practiceTotalCount + 1
+          this.dispatch('kata/updatePracticeCount', newPracticeCount)
+
           const handleNotAchieved = () => {
             if (kata.criteriaAction === 'retry') {
               this.dispatch('racing/retry')
@@ -590,6 +594,14 @@ const actions: ActionTree<RacingState, QuickTypingState> = {
               this.dispatch('kata/random')
             }
           }
+
+          // 达到最多练习次数上限，强制切换下一段
+          if (kata.criteriaMaxCount > 0 && newPracticeCount >= kata.criteriaMaxCount) {
+            this.dispatch('kata/updateAchievedCount', 0)
+            this.dispatch('kata/next')
+            return
+          }
+
           // 此次已达标
           const isAchieved = +getters.typeSpeed >= kata.criteriaSpeed && getters.hitSpeed >= kata.criteriaHitSpeed && getters.accuracy >= kata.criteriaAccuracy && finishState.error === 0
           if (isAchieved) {

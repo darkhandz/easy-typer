@@ -66,6 +66,7 @@ const mutations: MutationTree<KataState> = {
   },
   next: (state) => {
     state.currentParagraphNo += 1
+    state.practiceTotalCount = 0
     const startIndex = (state.currentParagraphNo - 1) * state.paragraphSize
 
     if (state.textType === 2) {
@@ -101,6 +102,10 @@ const mutations: MutationTree<KataState> = {
 
   achievedCount: (state, count: number) => {
     state.achievedCount = count
+  },
+
+  practiceCount: (state, count: number) => {
+    state.practiceTotalCount = count
   }
 }
 
@@ -113,6 +118,9 @@ const actions: ActionTree<KataState, QuickTypingState> = {
   },
   updateAchievedCount ({ commit }, count: number): void {
     commit('achievedCount', count)
+  },
+  updatePracticeCount ({ commit }, count: number): void {
+    commit('practiceCount', count)
   },
   loadArticle ({ commit, state }, article: KataState): void {
     commit('article', article)
