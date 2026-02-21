@@ -1,8 +1,24 @@
 <template>
-  <div :class="style" :data-word-id="word.id" :data-word-len="word.text.length">
-    <span>{{ word.text }}</span>
-    <label v-if="hasHint">{{ hintText }}</label>
-  </div>
+  <component
+    :is="mode === 'inline' ? 'span' : 'div'"
+    :class="mode === 'inline' ? 'word-fragment' : style"
+    :data-word-id="mode === 'grid' ? word.id : undefined"
+    :data-word-len="mode === 'grid' ? word.text.length : undefined"
+  >
+    <template v-if="mode === 'inline'">
+      <span
+        v-for="(ch, i) in chars"
+        :key="word.id + i"
+        :class="style"
+        :data-word-id="word.id + i"
+        data-word-len="1"
+      >{{ ch }}</span>
+    </template>
+    <template v-else>
+      <span>{{ word.text }}</span>
+      <label v-if="hasHint">{{ hintText }}</label>
+    </template>
+  </component>
 </template>
 
 <script lang="ts">
@@ -16,6 +32,9 @@ const setting = namespace('setting')
 export default class Words extends Vue {
   @Prop({ type: Word, required: true })
   readonly word!: Word
+
+  @Prop({ type: String, default: 'grid' })
+  readonly mode!: 'inline' | 'grid'
 
   @setting.State('hint')
   private hint!: boolean
@@ -62,6 +81,10 @@ export default class Words extends Vue {
     }
 
     return styles
+  }
+
+  get chars (): Array<string> {
+    return this.word.text.split('')
   }
 
   get hasHint (): boolean {

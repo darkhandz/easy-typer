@@ -1,7 +1,7 @@
 <template>
   <div id="article-main">
     <el-row ref="board" :class="articleStyle">
-      <Words v-for="word in words" :key="word.id" :word="word"/>
+      <Words v-for="word in words" :key="word.id" :word="word" :mode="articleMode"/>
     </el-row>
     <el-divider class="article-info" content-position="right">
       <span>第{{ identity }}段</span>
@@ -74,6 +74,10 @@ export default class Article extends Vue {
       mode = 'grid'
     }
     return ['article', mode]
+  }
+
+  get articleMode (): 'inline' | 'grid' {
+    return this.articleStyle.indexOf('grid') >= 0 ? 'grid' : 'inline'
   }
 
   get selectHint (): boolean {
@@ -227,10 +231,16 @@ export default class Article extends Vue {
 
   private getCharsPerLine (container: HTMLElement, sampleEl: HTMLElement, lineHeightPx: number): number {
     const style = getComputedStyle(sampleEl)
+    const containerStyle = getComputedStyle(container)
     const width = container.clientWidth
     const font = style.font || `${style.fontWeight} ${style.fontSize} ${style.fontFamily}`
     const letterSpacing = style.letterSpacing || 'normal'
-    const key = `${width}|${font}|${letterSpacing}`
+    const columnGap = containerStyle.columnGap || '0px'
+    const gapPx = Number.isFinite(parseFloat(columnGap)) ? parseFloat(columnGap) : 0
+    const paddingLeftPx = Number.isFinite(parseFloat(style.paddingLeft)) ? parseFloat(style.paddingLeft) : 0
+    const paddingRightPx = Number.isFinite(parseFloat(style.paddingRight)) ? parseFloat(style.paddingRight) : 0
+    const paddingX = Math.max(0, paddingLeftPx) + Math.max(0, paddingRightPx)
+    const key = `${width}|${font}|${letterSpacing}|${gapPx}|${paddingX}`
 
     if (key === this.measureCacheKey && this.cachedCharsPerLine > 0) {
       return this.cachedCharsPerLine
@@ -250,7 +260,9 @@ export default class Article extends Vue {
     document.body.removeChild(probe)
 
     const charAdvance = probeWidth / 100
-    const charsPerLine = Math.max(1, Math.floor((width - 1) / Math.max(1, charAdvance)))
+    const perChar = Math.max(1, charAdvance + Math.max(0, gapPx) + paddingX)
+    const available = width + Math.max(0, gapPx) - 1
+    const charsPerLine = Math.max(1, Math.floor(available / perChar))
 
     this.measureCacheKey = key
     this.cachedCharsPerLine = charsPerLine

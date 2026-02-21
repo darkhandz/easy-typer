@@ -376,10 +376,22 @@ html, body {
       }
     }
     &.inline {
-      div {
-        display: inline;
-        letter-spacing: 2px;
+      display: flex;
+      flex-wrap: wrap;
+      align-content: flex-start;
+      column-gap: 0;
+      font-size: 0;
+
+      .word-fragment {
+        display: contents;
+      }
+
+      .code {
+        letter-spacing: 0;
+        text-align: left;
         line-height: calc(var(--font-size) + 1.4rem);
+        margin-bottom: 0;
+        padding-right: 2px;
       }
     }
 
