@@ -3,6 +3,16 @@
     <el-table border :data="achievements.slice(0, 10)" stripe="stripe" style="width:100%;" class="achievements-table" :cell-class-name="tableCellClassName" @row-click="handleRowClick">
       <el-table-column prop="title" type="expand" label="">
         <template slot-scope="$props">
+          <el-popconfirm style="margin-right:6px;"
+            confirm-button-text="删除"
+            cancel-button-text="取消"
+            @confirm="handleDeleteAchievement($props.row)"
+            icon="el-icon-warning"
+            icon-color="red"
+            title="确定要删除这条成绩及其打字报告吗？删除后无法恢复。"
+          >
+            <el-button slot="reference" @click.stop type="text" size="medium" style="color: #F56C6C">删除</el-button>
+          </el-popconfirm>
           <el-button @click.stop="handleCopy($props.row)" type="text" size="medium">复制</el-button>
           <el-button v-if="$props.row.reportId" @click.stop="handleViewReport($props.row)" type="text" size="medium">查看报告</el-button>
           {{ generateRecord($props.row) }}
@@ -32,6 +42,7 @@
         :pager-count="5"
         layout="total, prev, pager, next"
         @current-change="handleCurrentChange"
+        :current-page="currentPage"
         :total="totalAchievement">
       </el-pagination>
     </div>
@@ -52,6 +63,7 @@ import Clipboard from '@/store/util/Clipboard'
 import db from '../store/util/Database'
 import dayjs from 'dayjs'
 import TypingReportDialog from './TypingReportDialog.vue'
+import { getAchievementsPage } from '@/store/util/AchievementQuery'
 
 const PAGE_SIZE = 10
 const SPEED_GAP = 30 // 速度阶梯，每30新增一个颜色
@@ -78,16 +90,13 @@ export default class Achievements extends Vue {
   private reportContent = ''
   private reportChars: TypingReportChar[] = []
   private reportAchievement: Achievement | null = null
+  private currentPage = 1
 
   async created (): Promise<void> {
-    // 如果 Vuex 中没有数据，自己加载
-    if (this.achievements.length === 0) {
+    // 如果 Vuex 中没有数据（或旧数据缺少主键），自己加载
+    if (this.achievements.length === 0 || this.achievements.some(a => typeof a.id !== 'number')) {
       try {
-        const recentAchievements = await db.achievement.reverse().limit(10).toArray()
-        this.updateAchievements(recentAchievements)
-
-        const total = await db.achievement.count()
-        this.updateTotalAchievements(total)
+        await this.reloadCurrentPage()
       } catch (error) {
         console.error('[Achievements] Failed to load from DB:', error)
       }
@@ -142,12 +151,22 @@ export default class Achievements extends Vue {
   }
 
   handleCurrentChange (currentPage: number) {
-    const offset = (currentPage - 1) * PAGE_SIZE
-    db.achievement.reverse().offset(offset).limit(10).toArray().then(achievements => {
-      this.updateAchievements(achievements)
-    }, (error) => {
-      console.log(error)
-    })
+    this.currentPage = currentPage
+    this.reloadCurrentPage().catch(console.error)
+  }
+
+  async reloadCurrentPage (): Promise<void> {
+    const total = await db.achievement.count()
+    this.updateTotalAchievements(total)
+
+    const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
+    if (this.currentPage > totalPages) {
+      this.currentPage = totalPages
+    }
+
+    const offset = (this.currentPage - 1) * PAGE_SIZE
+    const achievements = await getAchievementsPage(offset, PAGE_SIZE)
+    this.updateAchievements(achievements)
   }
 
   generateRecord (row: Achievement & RacingState) {
@@ -193,6 +212,55 @@ export default class Achievements extends Vue {
     } catch (error) {
       console.error('加载打字报告失败:', error)
       this.$message.error('加载打字报告失败')
+    }
+  }
+
+  async handleDeleteAchievement (row: Achievement): Promise<void> {
+    const reportId = typeof row.reportId === 'number' ? row.reportId : 0
+
+    try {
+      // achievement 表使用 out-of-line 主键，必要时通过 reportId 反查主键
+      let achievementId = typeof row.id === 'number' ? row.id : 0
+      if (!achievementId && reportId) {
+        const keys = await db.achievement.where('reportId').equals(reportId).primaryKeys()
+        achievementId = (keys[0] as number) || 0
+      }
+
+      if (!achievementId) {
+        this.$message.error('缺少成绩主键，无法删除（建议刷新页面后重试）')
+        return
+      }
+
+      await db.transaction('rw', db.achievement, db.typingReport, db.typingReportChar, async () => {
+        const reportIds = new Set<number>()
+        if (reportId) reportIds.add(reportId)
+
+        const linkedReports = await db.typingReport.where('achievementId').equals(achievementId).toArray()
+        for (const r of linkedReports) {
+          if (typeof r.id === 'number') reportIds.add(r.id)
+        }
+
+        const ids = Array.from(reportIds)
+        if (ids.length > 0) {
+          await db.typingReportChar.where('reportId').anyOf(ids).delete()
+          await db.typingReport.bulkDelete(ids)
+        }
+
+        await db.achievement.delete(achievementId)
+      })
+
+      if (this.reportDialogVisible && this.reportAchievement && this.reportAchievement.id === achievementId) {
+        this.reportDialogVisible = false
+        this.reportAchievement = null
+        this.reportContent = ''
+        this.reportChars = []
+      }
+
+      this.$message.success('已删除')
+      await this.reloadCurrentPage()
+    } catch (error) {
+      console.error('删除成绩失败:', error)
+      this.$message.error('删除失败')
     }
   }
 }

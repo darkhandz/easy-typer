@@ -138,6 +138,7 @@
 import { Component, Vue } from 'vue-property-decorator'
 import { parseTrieNodeByCodinds, TrieNode } from './store/util/TrieTree'
 import db from './store/util/Database'
+import { getRecentAchievements } from './store/util/AchievementQuery'
 import { Action, Mutation, namespace } from 'vuex-class'
 import { LoginUser, LooseObject } from './store/types'
 import eapi from './api/easyTyper'
@@ -407,9 +408,9 @@ export default class Setting extends Vue {
     })
 
     // 读取比赛成绩
-    db.achievement.reverse().limit(10).toArray().then(achievements => {
+    getRecentAchievements(10).then(achievements => {
       this.updateAchievements(achievements)
-    }, (error) => {
+    }).catch(error => {
       console.log(error)
     })
   }

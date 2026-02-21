@@ -23,6 +23,7 @@ import { BarChart, BarSeriesOption, LineChart, LineSeriesOption } from 'echarts/
 import { TitleComponent, TitleComponentOption, TooltipComponent, TooltipComponentOption, GridComponent, GridComponentOption, DataZoomComponent, LegendComponent, ToolboxComponent } from 'echarts/components'
 import { CanvasRenderer } from 'echarts/renderers'
 import db from '@/store/util/Database'
+import { getRecentAchievements } from '@/store/util/AchievementQuery'
 
 type ECOption = echarts.ComposeOption<BarSeriesOption | TitleComponentOption | GridComponentOption | TooltipComponentOption | LineSeriesOption>
 echarts.use([TitleComponent, TooltipComponent, BarChart, GridComponent, CanvasRenderer, LineChart, DataZoomComponent, LegendComponent, ToolboxComponent])
@@ -66,7 +67,7 @@ export default class History extends Vue {
       this.recordLoaded(achievements)
 
       // 加载最近10条成绩到 Vuex
-      const recentAchievements = await db.achievement.reverse().limit(10).toArray()
+      const recentAchievements = await getRecentAchievements(10)
       this.updateAchievements(recentAchievements)
 
       // 更新总数
