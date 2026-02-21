@@ -29,6 +29,7 @@ process.env.VUE_APP_VERSION = require('./package.json').version
 process.env.VUE_APP_WEB_VERSION = version
 
 const name = '木易跟打器'
+const isElectronBuild = process.env.VUE_APP_BUILD_TARGET === 'electron'
 
 module.exports = {
   css: {
@@ -36,8 +37,8 @@ module.exports = {
       sass: {
         // Optional: add global variables or mixins
         // additionalData: `@import "@/styles/variables.scss";`
-      },
-    },
+      }
+    }
   },
   pwa: {
     name,
@@ -79,7 +80,7 @@ module.exports = {
   },
 
   publicPath: process.env.NODE_ENV === 'production'
-    ? '/'
+    ? (process.env.VUE_APP_PUBLIC_PATH || '/')
     : '/',
 
   outputDir: 'docs',
@@ -109,13 +110,15 @@ module.exports = {
   },
   productionSourceMap: false,
   pluginOptions: {
-    prerenderSpa: {
-      registry: undefined,
-      renderRoutes: routes,
-      useRenderEvent: true,
-      headless: true,
-      onlyProduction: true
-    }
+    prerenderSpa: isElectronBuild
+      ? { disable: true }
+      : {
+        registry: undefined,
+        renderRoutes: routes,
+        useRenderEvent: true,
+        headless: true,
+        onlyProduction: true
+      }
   },
   devServer: {
     proxy: {

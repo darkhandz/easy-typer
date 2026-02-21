@@ -115,9 +115,13 @@ const routes: Array<RouteConfig> = [
   }
 ]
 
+type RouterMode = 'hash' | 'history' | 'abstract'
+const routerMode = (process.env.VUE_APP_ROUTER_MODE as RouterMode) || 'history'
+const routerBase = process.env.VUE_APP_ROUTER_BASE || process.env.BASE_URL
+
 const router = new VueRouter({
-  mode: 'history',
-  base: process.env.BASE_URL,
+  mode: routerMode,
+  base: routerBase,
   routes
 })
 
