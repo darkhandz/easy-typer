@@ -46,6 +46,7 @@
 import { Component, Vue, Prop } from 'vue-property-decorator'
 import { namespace } from 'vuex-class'
 import dayjs from 'dayjs'
+import { Achievement } from '@/store/types'
 
 const setting = namespace('setting')
 
@@ -68,7 +69,7 @@ export default class ReportArticleView extends Vue {
   private highlightIdx!: number
 
   @Prop({ type: Object, default: null })
-  private achievement!: any
+  private achievement!: Achievement | null
 
   @setting.State('reportColorError')
   private colorError!: string

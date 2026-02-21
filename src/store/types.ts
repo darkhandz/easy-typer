@@ -747,6 +747,7 @@ export class Achievement {
   hitSpeed = 0;
   codeLength = 0;
   contentLength = 0;
+  error = 0;
   accuracy = 0;
   balance = 0;
   leftHand = 0;
@@ -781,6 +782,7 @@ export class Achievement {
     * 暂停时长
     */
    pauseTime = 0;
+   retry = 0;
    finishedTime = Date.now();
    /**
     * 打字报告ID

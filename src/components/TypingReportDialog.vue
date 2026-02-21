@@ -34,7 +34,7 @@
 
 <script lang="ts">
 import { Component, Vue, Prop, Watch } from 'vue-property-decorator'
-import { TypingReportChar } from '@/store/types'
+import { Achievement, TypingReportChar } from '@/store/types'
 import { namespace } from 'vuex-class'
 import ReportFilter from './ReportFilter.vue'
 import ReportCharTable from './ReportCharTable.vue'
@@ -67,7 +67,7 @@ export default class TypingReportDialog extends Vue {
   private reportChars!: TypingReportChar[]
 
   @Prop({ type: Object, default: null })
-  private achievement!: any
+  private achievement!: Achievement | null
 
   @setting.State('reportSlowThresholdDefault')
   private defaultThreshold!: number

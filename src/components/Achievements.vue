@@ -46,7 +46,7 @@
 
 <script lang="ts">
 import { Achievement, RacingState, TypingReportChar } from '@/store/types'
-import { Component, Vue, Watch } from 'vue-property-decorator'
+import { Component, Vue } from 'vue-property-decorator'
 import { Mutation, State } from 'vuex-class'
 import Clipboard from '@/store/util/Clipboard'
 import db from '../store/util/Database'
@@ -94,17 +94,12 @@ export default class Achievements extends Vue {
     }
   }
 
-  @Watch('achievements')
-  onAchievementsChange (newVal: Achievement[]): void {
-    // 监听 achievements 变化，确保组件响应数据更新
-  }
-
   titleFormatter (row: Achievement, column: number, value: string) {
     return (value || '未知').slice(0, 16)
     // return value || '未知'
   }
 
-  tableCellClassName ({ row, column }: any) {
+  tableCellClassName ({ row, column }: { row: Achievement; column: { property?: string } }): string {
     if (column.property === 'typeSpeed') {
       const rawLevel = Math.floor(row.typeSpeed / SPEED_GAP)
       const level = rawLevel > 6 ? 6 : rawLevel // 速度等级为 6+ 时按 6 处理
