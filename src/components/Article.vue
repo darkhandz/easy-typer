@@ -7,6 +7,7 @@
       <span>第{{ identity }}段</span>
       <span>{{ title || '未知' }}</span>
       <span>共{{ length }}字</span>
+      <span v-if="criteriaOpen">{{ criteriaIndicatorText }}</span>
     </el-divider>
   </div>
 </template>
@@ -21,6 +22,7 @@ import Words from '@/components/Words.vue'
 const article = namespace('article')
 const racing = namespace('racing')
 const setting = namespace('setting')
+const kata = namespace('kata')
 
 @Component({
   components: { Words }
@@ -62,6 +64,27 @@ export default class Article extends Vue {
   @setting.State('hintOptions')
   private hintOptions!: Array<string>
 
+  @kata.State('criteriaOpen')
+  private criteriaOpen!: boolean
+
+  @kata.State('criteriaAccuracy')
+  private criteriaAccuracy!: number
+
+  @kata.State('criteriaHitSpeed')
+  private criteriaHitSpeed!: number
+
+  @kata.State('criteriaSpeed')
+  private criteriaSpeed!: number
+
+  @kata.State('criteriaAchieved')
+  private criteriaAchieved!: number
+
+  @kata.State('criteriaConsecutive')
+  private criteriaConsecutive!: boolean
+
+  @kata.State('achievedCount')
+  private achievedCount!: number
+
   private scrollRafId = 0
   private nextScrollTop: number | null = null
 
@@ -90,6 +113,29 @@ export default class Article extends Vue {
 
   get autoSelectHint (): boolean {
     return this.hintOptions.indexOf('autoSelect') >= 0
+  }
+
+  get criteriaIndicatorText (): string {
+    const accuracy = this.formatNumber(this.criteriaAccuracy, 0)
+    const hitSpeed = this.formatNumber(this.criteriaHitSpeed, 1)
+    const typeSpeed = this.formatNumber(this.criteriaSpeed, 0)
+
+    const achievedTotal = Math.max(0, Number(this.criteriaAchieved) || 0)
+    const achievedNow = achievedTotal > 0
+      ? Math.max(0, Math.min(Number(this.achievedCount) || 0, achievedTotal))
+      : Math.max(0, Number(this.achievedCount) || 0)
+
+    const consecutiveText = this.criteriaConsecutive ? '连续' : ''
+    const achievedText = achievedTotal > 0 ? `，${consecutiveText}${achievedTotal}次 (${achievedNow}/${achievedTotal})` : ''
+
+    return `指标：键准-${accuracy}，击键-${hitSpeed}，速度-${typeSpeed}${achievedText}`
+  }
+
+  formatNumber (val: number, digits = 0): string {
+    if (!Number.isFinite(val)) return `${val}`
+    if (digits <= 0) return `${Math.round(val)}`
+    const rounded = Number(val.toFixed(digits))
+    return `${rounded}`
   }
 
   get words (): Array<Word> {
