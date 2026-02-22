@@ -178,6 +178,10 @@
             </el-checkbox-group>
           </el-form-item>
 
+          <el-form-item label="自动复制成绩">
+            <el-switch v-model="autoCopyAchievement"/>
+          </el-form-item>
+
           <el-form-item label="输入法">
             <el-switch v-model="form.inputMethod"/>
             <el-input maxlength="20" v-if="form.inputMethod" v-model="form.inputMethodName"/>
@@ -333,6 +337,14 @@ export default class Setting extends Vue {
   private resultOptions = RESULT_OPTIONS
 
   private form = new SettingState()
+
+  get autoCopyAchievement (): boolean {
+    return !this.form.offClipboard
+  }
+
+  set autoCopyAchievement (enabled: boolean) {
+    this.form.offClipboard = !enabled
+  }
 
   @setting.State('loaded')
   private loaded!: boolean
