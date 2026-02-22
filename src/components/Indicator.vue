@@ -117,6 +117,12 @@
           </span>
         </div>
         <div class="key-value">
+          <span>进度提示</span>
+          <span>
+            <el-switch v-model="tempShowTopProgress" @change="toggleTopProgress(tempShowTopProgress)"/>
+          </span>
+        </div>
+        <div class="key-value">
           <span>替换空格</span>
           <span>
             <el-switch v-model="tempReplaceSpace" @change="toggleReplaceSpace(tempReplaceSpace)"/>
@@ -257,6 +263,9 @@ export default class Indicator extends Vue {
   @setting.Getter('offClipboard')
   private offClipboard!: boolean
 
+  @setting.Getter('showTopProgress')
+  private showTopProgress!: boolean
+
   @setting.Getter('getSelectChar')
   private getSelectChar!: Function
 
@@ -277,6 +286,9 @@ export default class Indicator extends Vue {
 
   @setting.Mutation('toggleClipboard')
   private toggleClipboard!: Function
+
+  @setting.Mutation('toggleTopProgress')
+  private toggleTopProgress!: Function
 
   @summary.Getter('todayWords')
   private todayWords!: number
@@ -327,6 +339,7 @@ export default class Indicator extends Vue {
   private tempReplaceSpace = true
   private tempReplaceSymbol = true
   private tempOffClipboard = false
+  private tempShowTopProgress = true
 
   private tempDarkMode = false
 
@@ -384,6 +397,13 @@ export default class Indicator extends Vue {
     }
   }
 
+  @Watch('showTopProgress')
+  showTopProgressChange (showTopProgress: boolean) {
+    if (this.tempShowTopProgress !== showTopProgress) {
+      this.tempShowTopProgress = showTopProgress
+    }
+  }
+
   toggleDarkMode (isDarkMode: boolean) {
     this.tempDarkMode = isDarkMode
     const newMode = isDarkMode ? 'dark' : ''
@@ -438,6 +458,7 @@ export default class Indicator extends Vue {
     this.replaceSpaceChange(this.replaceSpace)
     this.replaceSymbolChange(this.replaceSymbol)
     this.offClipboardChange(this.offClipboard)
+    this.showTopProgressChange(this.showTopProgress)
 
     this.tempDarkMode = localStorage.getItem('colorMode') as string === 'dark'
   }

@@ -33,6 +33,10 @@ const getters: GetterTree<SettingState, QuickTypingState> = {
     return state.offClipboard
   },
 
+  showTopProgress (): boolean {
+    return state.showTopProgress
+  },
+
   styles (): InterfaceStyle {
     const { pending, typed, correct, error, hintColor, code1, code2, code3, code4, fontFamily, fontSize, fontWeight, articleRows, inputRows, darkTyped, darkCorrect, darkPending } = state
     return {
@@ -119,6 +123,11 @@ const mutations: MutationTree<SettingState> = {
 
   toggleClipboard (state, offClipboard) {
     state.offClipboard = offClipboard
+    db.configs.put(state, 'setting')
+  },
+
+  toggleTopProgress (state, showTopProgress) {
+    state.showTopProgress = showTopProgress
     db.configs.put(state, 'setting')
   },
 

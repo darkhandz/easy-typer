@@ -667,6 +667,10 @@ export class SettingState {
    */
   showSidebar = true
   /**
+   * 是否显示顶部打字进度条
+   */
+  showTopProgress = true
+  /**
    * 上次配置更新时间
    */
   lastUpdatedTime = 1708914220000

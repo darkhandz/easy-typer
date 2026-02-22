@@ -1,6 +1,7 @@
 <template>
   <div id="app">
     <el-progress
+      v-if="showTopProgress"
       type="line"
       :percentage="percentage"
       :width="100"
@@ -165,6 +166,9 @@ export default class Setting extends Vue {
 
   @setting.Action('load')
   private loadSetting!: Function
+
+  @setting.State('showTopProgress')
+  private showTopProgress!: boolean
 
   private pathname = location.pathname
 
