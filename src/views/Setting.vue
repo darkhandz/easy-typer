@@ -9,6 +9,9 @@
           <el-form-item label="顶部进度条">
             <el-switch v-model="form.showTopProgress"/>
           </el-form-item>
+          <el-form-item label="达标提示">
+            <el-switch v-model="form.showAchievedTip"/>
+          </el-form-item>
           <el-form-item label="结束条件">
             <el-select v-model="form.finishStrategy">
               <el-option value="NO_ERROR" label="无错字"/>

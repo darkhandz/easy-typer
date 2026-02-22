@@ -627,9 +627,11 @@ const actions: ActionTree<RacingState, QuickTypingState> = {
               this.dispatch('kata/updateAchievedCount', 0)
               this.dispatch('kata/next')
             } else {
-              Message.success({
-                message: `恭喜！当前段达标『${latestAchievedCount}/${kata.criteriaAchieved}』次`
-              })
+              if (rootState.setting && rootState.setting.showAchievedTip) {
+                Message.success({
+                  message: `恭喜！当前段达标『${latestAchievedCount}/${kata.criteriaAchieved}』次`
+                })
+              }
               this.dispatch('kata/updateAchievedCount', latestAchievedCount)
 
               handleNotAchieved()

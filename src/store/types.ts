@@ -671,6 +671,10 @@ export class SettingState {
    */
   showTopProgress = true
   /**
+   * 是否显示“达标提示”（恭喜！当前段达标…）
+   */
+  showAchievedTip = true
+  /**
    * 上次配置更新时间
    */
   lastUpdatedTime = 1708914220000

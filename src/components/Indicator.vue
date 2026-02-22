@@ -117,9 +117,23 @@
           </span>
         </div>
         <div class="key-value">
-          <span>进度提示</span>
+          <span>进度提示
+            <el-tooltip class="item" effect="dark" content="顶部的进度条是否显示" placement="top">
+              <i class="el-icon-info"/>
+            </el-tooltip>
+          </span>
           <span>
             <el-switch v-model="tempShowTopProgress" @change="toggleTopProgress(tempShowTopProgress)"/>
+          </span>
+        </div>
+        <div class="key-value">
+          <span>达标提示
+            <el-tooltip class="item" effect="dark" content="当前段达到指标时是否弹消息通知" placement="top">
+              <i class="el-icon-info"/>
+            </el-tooltip>
+          </span>
+          <span>
+            <el-switch v-model="tempShowAchievedTip" @change="toggleAchievedTip(tempShowAchievedTip)"/>
           </span>
         </div>
         <div class="key-value">
@@ -266,6 +280,9 @@ export default class Indicator extends Vue {
   @setting.Getter('showTopProgress')
   private showTopProgress!: boolean
 
+  @setting.Getter('showAchievedTip')
+  private showAchievedTip!: boolean
+
   @setting.Getter('getSelectChar')
   private getSelectChar!: Function
 
@@ -289,6 +306,9 @@ export default class Indicator extends Vue {
 
   @setting.Mutation('toggleTopProgress')
   private toggleTopProgress!: Function
+
+  @setting.Mutation('toggleAchievedTip')
+  private toggleAchievedTip!: Function
 
   @summary.Getter('todayWords')
   private todayWords!: number
@@ -340,6 +360,7 @@ export default class Indicator extends Vue {
   private tempReplaceSymbol = true
   private tempOffClipboard = false
   private tempShowTopProgress = true
+  private tempShowAchievedTip = true
 
   private tempDarkMode = false
 
@@ -404,6 +425,13 @@ export default class Indicator extends Vue {
     }
   }
 
+  @Watch('showAchievedTip')
+  showAchievedTipChange (showAchievedTip: boolean) {
+    if (this.tempShowAchievedTip !== showAchievedTip) {
+      this.tempShowAchievedTip = showAchievedTip
+    }
+  }
+
   toggleDarkMode (isDarkMode: boolean) {
     this.tempDarkMode = isDarkMode
     const newMode = isDarkMode ? 'dark' : ''
@@ -459,6 +487,7 @@ export default class Indicator extends Vue {
     this.replaceSymbolChange(this.replaceSymbol)
     this.offClipboardChange(this.offClipboard)
     this.showTopProgressChange(this.showTopProgress)
+    this.showAchievedTipChange(this.showAchievedTip)
 
     this.tempDarkMode = localStorage.getItem('colorMode') as string === 'dark'
   }

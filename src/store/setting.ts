@@ -37,6 +37,10 @@ const getters: GetterTree<SettingState, QuickTypingState> = {
     return state.showTopProgress
   },
 
+  showAchievedTip (): boolean {
+    return state.showAchievedTip
+  },
+
   styles (): InterfaceStyle {
     const { pending, typed, correct, error, hintColor, code1, code2, code3, code4, fontFamily, fontSize, fontWeight, articleRows, inputRows, darkTyped, darkCorrect, darkPending } = state
     return {
@@ -128,6 +132,11 @@ const mutations: MutationTree<SettingState> = {
 
   toggleTopProgress (state, showTopProgress) {
     state.showTopProgress = showTopProgress
+    db.configs.put(state, 'setting')
+  },
+
+  toggleAchievedTip (state, showAchievedTip) {
+    state.showAchievedTip = showAchievedTip
     db.configs.put(state, 'setting')
   },
 
