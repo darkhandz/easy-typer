@@ -179,7 +179,7 @@ export default class HistoryTypingReport extends Vue {
   private startTime: number = Date.now() - 24 * 60 * 60 * 1000
   private endTime: number = Date.now()
   private threshold = 0.5
-  private countThreshold = 10
+  private countThreshold = 50
   private chars: AggregatedChar[] = []
   private sortProp = ''
   private sortOrder = ''
