@@ -78,7 +78,7 @@ export default class ReportFilter extends Vue {
 <style lang="scss" scoped>
 .report-filter {
   padding: 10px;
-  background: #f5f7fa;
+  background: var(--level4-border-color);
   border-radius: 4px;
 
   .filter-row {
@@ -89,7 +89,7 @@ export default class ReportFilter extends Vue {
     .filter-label {
       white-space: nowrap;
       font-size: 14px;
-      color: #606266;
+      color: var(--secondary-color);
     }
 
     .filter-slider {

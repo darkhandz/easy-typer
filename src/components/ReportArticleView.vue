@@ -111,7 +111,7 @@ export default class ReportArticleView extends Vue {
 
     const durationSec = data.durationMs / 1000
 
-    let textColor = '#303133'
+    let textColor = 'var(--normal-color)'
     let bgColor = ''
 
     if (data.mistyped) {
@@ -138,9 +138,9 @@ export default class ReportArticleView extends Vue {
 <style lang="scss" scoped>
 .report-article-view {
   padding: 8px 4px;
-  background: #fff;
+  background: var(--text-background-color);
   border-radius: 4px;
-  border: 1px solid #dcdfe6;
+  border: 1px solid var(--level2-border-color);
 
   .stats-table {
     margin-bottom: 10px;

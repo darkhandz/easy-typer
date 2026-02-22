@@ -343,7 +343,7 @@ export default class HistoryTypingReport extends Vue {
 
       .filter-label {
         font-size: 14px;
-        color: #606266;
+        color: var(--secondary-color);
         white-space: nowrap;
       }
 
@@ -361,14 +361,14 @@ export default class HistoryTypingReport extends Vue {
       align-items: center;
       gap: 15px;
       padding: 10px;
-      background: #f5f7fa;
+      background: var(--level4-border-color);
       border-radius: 4px;
       margin-bottom: 10px;
 
       .filter-label {
         white-space: nowrap;
         font-size: 14px;
-        color: #606266;
+        color: var(--secondary-color);
       }
 
       .filter-slider {
@@ -386,13 +386,13 @@ export default class HistoryTypingReport extends Vue {
       align-items: center;
       gap: 15px;
       padding: 10px;
-      background: #f5f7fa;
+      background: var(--level4-border-color);
       border-radius: 4px;
 
       .filter-label {
         white-space: nowrap;
         font-size: 14px;
-        color: #606266;
+        color: var(--secondary-color);
       }
 
       .filter-slider {
