@@ -48,10 +48,15 @@ export default class Words extends Vue {
   @setting.State('disableSingleHint')
   private disableSingleHint!: boolean
 
+  @setting.State('disableWordHint')
+  private disableWordHint!: boolean
+
   get single (): boolean {
     const word = this.word
     const length = word.text.length
-    return !this.disableSingleHint || length > (word.autoSelect ? 2 : 1)
+    const allowSingleToggle = !this.disableSingleHint || length > (word.autoSelect ? 2 : 1)
+    const allowWordToggle = !this.disableWordHint || length === 1
+    return allowSingleToggle && allowWordToggle
   }
 
   get hasColorHint (): boolean {

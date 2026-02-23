@@ -580,6 +580,10 @@ export class SettingState {
    */
   disableSingleHint = false
   /**
+   * 禁用词组提示
+   */
+  disableWordHint = false
+  /**
    * 标点顶屏提示
    */
   punctuationAutoSelectHint = '顶'
