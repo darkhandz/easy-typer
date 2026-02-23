@@ -1,13 +1,11 @@
-import Vue from 'vue'
 import { ActionTree, GetterTree, Module, MutationTree } from 'vuex'
 import { BookModel, QuickTypingState, ReadingState } from './types'
 import db from './util/Database'
-import eapi from '@/api/easyTyper'
 
 const state = new ReadingState()
 
 const getters: GetterTree<ReadingState, QuickTypingState> = {
-  books (): any[] {
+  books (): BookModel[] {
     return state.books
   },
   bookConf () {
@@ -66,7 +64,7 @@ const actions: ActionTree<ReadingState, QuickTypingState> = {
     commit('updateBookConf', conf)
   },
 
-  updateBooksByConf ({ commit, state }, id: string) {
+  updateBooksByConf ({ commit, state }) {
     const books = state.books.map(book => {
       return book.id === state.bookConf.id
         ? {

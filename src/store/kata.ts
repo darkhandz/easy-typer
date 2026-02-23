@@ -126,7 +126,7 @@ const actions: ActionTree<KataState, QuickTypingState> = {
     commit('article', article)
     kataHistory.insertOrUpdateHistory(state)
   },
-  updateCriteria ({ commit, state, getters }, criteria): void {
+  updateCriteria ({ commit }, criteria): void {
     if (criteria) {
       commit('updateCriteria', criteria)
     }

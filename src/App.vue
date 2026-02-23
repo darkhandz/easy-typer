@@ -137,14 +137,13 @@
 
 <script lang="ts">
 import { Component, Vue } from 'vue-property-decorator'
-import { parseTrieNodeByCodinds, TrieNode } from './store/util/TrieTree'
+import { TrieNode } from './store/util/TrieTree'
 import db from './store/util/Database'
 import { getRecentAchievements } from './store/util/AchievementQuery'
 import { Action, Mutation, namespace } from 'vuex-class'
 import { LoginUser, LooseObject } from './store/types'
 import eapi from './api/easyTyper'
 import { Route } from 'vue-router'
-import punctuations from './store/util/punctuation'
 
 const setting = namespace('setting')
 const login = namespace('login')
@@ -240,7 +239,7 @@ export default class Setting extends Vue {
     { color: '#015a4f', percentage: 100 }
   ]
 
-  handleSelect (key: string, keyPath: string[]) {
+  handleSelect (key: string) {
     if (key === '/kata' || key === '/reading') {
       if (this.hasTipWarning) {
         return
@@ -334,7 +333,7 @@ export default class Setting extends Vue {
     }
 
     if (window.electronAPI && window.electronAPI.getAppVersion) {
-      window.electronAPI && window.electronAPI.getAppVersion((evt: any, appVersion: string) => {
+      window.electronAPI && window.electronAPI.getAppVersion((_evt: unknown, appVersion: string) => {
         this.setAppVersion(appVersion)
       })
     }

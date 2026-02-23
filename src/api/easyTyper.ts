@@ -149,17 +149,6 @@ const verify = (content: string, sign: string): boolean => {
   return content.length === parseInt(count) && sha1Hmac(`${content}-${id}`) === matched[3]
 }
 
-const baseRequest = (api: string) => {
-  return fetch(api)
-    .then(res => res.json())
-    .then(ret => {
-      if (ret.code === 0) {
-        return ret.data
-      }
-      throw Error(ret.msg)
-    })
-}
-
 const getRandomArticle = (): Promise<NewsResponse> => {
   return axiosInstance.get('/api/r/articles/random')
 }
