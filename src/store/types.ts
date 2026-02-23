@@ -671,6 +671,10 @@ export class SettingState {
    */
   showSidebar = true
   /**
+   * 是否显示顶部指标
+   */
+  showIndicator = true
+  /**
    * 是否显示顶部打字进度条
    */
   showTopProgress = true

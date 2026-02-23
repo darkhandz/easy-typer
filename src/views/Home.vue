@@ -347,8 +347,14 @@ export default class Home extends Vue {
   @setting.State('showSidebar')
   private showSidebar!: boolean
 
+  @setting.State('showIndicator')
+  private showIndicator!: boolean
+
   @setting.Mutation('toggleSidebar')
   private toggleRawSidebar!: Function
+
+  @setting.Mutation('toggleIndicator')
+  private toggleIndicator!: Function
 
   @setting.State('articleRows')
   private articleRows!: number
@@ -406,7 +412,6 @@ export default class Home extends Vue {
   private tempFontWeight = 400
   private hasUpdated = false
   private wikiTypeMap = wikiTypeMap
-  private showIndicator = true
 
   commandHandlers: { [key: string]: () => void } = {
     loadClipboard: () => this.loadFromClipboard(),
@@ -764,7 +769,7 @@ export default class Home extends Vue {
   }
 
   toggleIndicatorVisible () {
-    this.showIndicator = !this.showIndicator
+    this.toggleIndicator(!this.showIndicator)
   }
 
   handleShortCut (e: KeyboardEvent): void {

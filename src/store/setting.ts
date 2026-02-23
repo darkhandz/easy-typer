@@ -125,6 +125,11 @@ const mutations: MutationTree<SettingState> = {
     db.configs.put(state, 'setting')
   },
 
+  toggleIndicator (state, showIndicator) {
+    state.showIndicator = showIndicator
+    db.configs.put(state, 'setting')
+  },
+
   toggleClipboard (state, offClipboard) {
     state.offClipboard = offClipboard
     db.configs.put(state, 'setting')
