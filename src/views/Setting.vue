@@ -303,12 +303,25 @@
               导入并覆盖
             </el-button>
           </el-form-item>
+
+          <el-form-item label="危险操作">
+            <el-button
+              type="danger"
+              plain
+              icon="el-icon-delete"
+              :disabled="isDbExporting || isDbImporting"
+              @click="confirmClearTypingData"
+            >
+              清除所有打字成绩
+            </el-button>
+            <div class="el-upload__tip" style="margin-top: 8px">将清除打字成绩与打字报告（不可恢复），并重置“跟打总记录”统计；不影响码表/设置/阅读书架等。</div>
+          </el-form-item>
         </el-tab-pane>
       </el-tabs>
       <el-form-item>
-        <el-button type="primary" @click="submitForm">保存</el-button>
-        <el-button @click="resetForm">重置</el-button>
-        <el-button type="danger" @click="setToDefault">恢复默认设置</el-button>
+        <el-button v-if="activeTab !== 'importExport'" type="primary" @click="submitForm">保存</el-button>
+        <el-button v-if="activeTab !== 'importExport'" @click="resetForm">重置</el-button>
+        <el-button v-if="activeTab !== 'importExport'" type="danger" @click="setToDefault">恢复默认设置</el-button>
       </el-form-item>
     </el-form>
     <el-dialog title="添加标点" :visible="punctuationFormVisiable">
@@ -771,6 +784,51 @@ export default class Setting extends Vue {
     } finally {
       loading.close()
       this.isDbImporting = false
+    }
+  }
+
+  async confirmClearTypingData (): Promise<void> {
+    if (this.isDbExporting || this.isDbImporting) return
+
+    try {
+      await MessageBox.confirm(
+        '将清除所有打字成绩与打字报告（不可恢复）。是否继续？',
+        '确认清除',
+        {
+          confirmButtonText: '继续清除',
+          cancelButtonText: '取消',
+          type: 'warning',
+          dangerouslyUseHTMLString: false
+        }
+      )
+    } catch {
+      return
+    }
+
+    const loading = Loading.service({
+      lock: true,
+      text: '正在清除打字成绩与报告，请稍候……',
+      spinner: 'el-icon-loading',
+      background: 'rgba(0, 0, 0, 0.7)'
+    })
+
+    try {
+      await db.transaction('rw', db.achievement, db.typingReport, db.typingReportChar, db.summary, async () => {
+        await db.typingReportChar.clear()
+        await db.typingReport.clear()
+        await db.achievement.clear()
+        await db.summary.delete('wordCount')
+      })
+      await MessageBox.alert('清除完成，即将刷新页面。', '完成', {
+        type: 'success',
+        confirmButtonText: '刷新'
+      })
+      location.reload()
+    } catch (e) {
+      console.error(e)
+      this.$message({ message: e?.message || '清除失败', type: 'error', showClose: true, duration: 6000 })
+    } finally {
+      loading.close()
     }
   }
 }
