@@ -126,9 +126,9 @@ export default class Article extends Vue {
       : Math.max(0, Number(this.achievedCount) || 0)
 
     const consecutiveText = this.criteriaConsecutive ? '连续' : ''
-    const achievedText = achievedTotal > 0 ? `，${consecutiveText}${achievedTotal}次 (${achievedNow}/${achievedTotal})` : ''
+    const achievedText = achievedTotal > 0 ? `${consecutiveText}${achievedTotal}次` : ''
 
-    return `指标：键准-${accuracy}，击键-${hitSpeed}，速度-${typeSpeed}${achievedText}`
+    return `指标【键准:${accuracy} 击键:${hitSpeed} 速度:${typeSpeed} ${achievedText}】(${achievedNow}/${achievedTotal})`
   }
 
   formatNumber (val: number, digits = 0): string {
