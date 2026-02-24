@@ -321,6 +321,7 @@ html, body {
 #article-main {
   .article {
     font-family: var(--racing-font);
+    position: relative;
     height: calc((var(--font-size) + 2rem + 5px) * var(--article-rows));
     overflow: auto;
     font-weight: var(--font-weight);

@@ -193,9 +193,8 @@ export default class Article extends Vue {
       return
     }
 
-    const activeTop = this.getElementTop(el, active)
-
     if (this.articleScrollMode === 'line') {
+      const activeTop = this.getElementTop(el, active)
       const lineHeight = this.getLineHeightPx(active)
       const targetTop = activeTop - (clientHeight / 2 - lineHeight / 2)
       this.requestScrollTop(el, targetTop, 'smooth')
@@ -203,16 +202,22 @@ export default class Article extends Vue {
     }
 
     if (this.articleScrollMode === 'char') {
+      const activeTop = this.getElementTop(el, active)
       const lineHeight = this.getLineHeightPx(active)
       const charsPerLine = this.getCharsPerLine(el, active, lineHeight)
       const charIndex = this.getCharIndexInLine(this.input.length, charsPerLine)
-      const fraction = charIndex / charsPerLine
+      const fallbackFraction = charIndex / charsPerLine
+      const offsetLeft = this.getOffsetLeftWithinContainer(el, active)
+      const maxLeft = Math.max(1, el.clientWidth - active.offsetWidth)
+      const offsetFraction = offsetLeft === null ? null : Math.max(0, Math.min(1, offsetLeft / maxLeft))
+      const fraction = offsetFraction ?? fallbackFraction
 
       const targetTop = activeTop - (clientHeight / 2 - lineHeight / 2) + fraction * lineHeight
       this.requestScrollTop(el, targetTop)
       return
     }
 
+    const activeTop = this.getElementTop(el, active)
     const suffixOffset = this.hint ? 2 : 1
     const baseOffset = (parseFloat(this.fontSize) + suffixOffset) * 12
     const fixed = this.hint
@@ -250,9 +255,42 @@ export default class Article extends Vue {
   }
 
   private getElementTop (container: HTMLElement, target: HTMLElement): number {
+    // Prefer stable layout coordinates to avoid 1px jitter from getBoundingClientRect rounding
+    // when container scrollTop changes frequently (autoScroll).
+    const offsetTop = this.getOffsetTopWithinContainer(container, target)
+    if (offsetTop !== null) {
+      return offsetTop
+    }
+
+    return this.getElementTopByRect(container, target)
+  }
+
+  private getElementTopByRect (container: HTMLElement, target: HTMLElement): number {
     const containerRect = container.getBoundingClientRect()
-    const targetRect = target.getBoundingClientRect()
+    const rects = target.getClientRects()
+    const targetRect = rects.length > 0 ? rects[0] : target.getBoundingClientRect()
     return targetRect.top - containerRect.top + container.scrollTop
+  }
+
+  private getOffsetTopWithinContainer (container: HTMLElement, target: HTMLElement): number | null {
+    // offsetTop is stable, but requires walking offsetParent chain.
+    let el: HTMLElement | null = target
+    let top = 0
+    while (el && el !== container) {
+      top += el.offsetTop
+      el = el.offsetParent as HTMLElement | null
+    }
+    return el === container ? top : null
+  }
+
+  private getOffsetLeftWithinContainer (container: HTMLElement, target: HTMLElement): number | null {
+    let el: HTMLElement | null = target
+    let left = 0
+    while (el && el !== container) {
+      left += el.offsetLeft
+      el = el.offsetParent as HTMLElement | null
+    }
+    return el === container ? left : null
   }
 
   private getLineHeightPx (el: HTMLElement): number {
@@ -330,16 +368,21 @@ export default class Article extends Vue {
   private requestScrollTop (container: HTMLElement, top: number, behavior: 'instant' | 'smooth' = 'instant') {
     const scrollDistance = container.scrollHeight - container.clientHeight
     const clamped = Math.max(0, Math.min(top, scrollDistance))
+    const desired = Math.round(clamped)
+
+    if (Math.abs(container.scrollTop - desired) < 0.5) {
+      return
+    }
 
     if (behavior === 'smooth' && typeof container.scrollTo === 'function') {
       const reducedMotion = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches
       if (!reducedMotion) {
-        container.scrollTo({ top: clamped, behavior: 'smooth' })
+        container.scrollTo({ top: desired, behavior: 'smooth' })
         return
       }
     }
 
-    this.nextScrollTop = clamped
+    this.nextScrollTop = desired
     if (this.scrollRafId) {
       return
     }
