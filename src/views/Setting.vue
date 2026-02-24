@@ -259,6 +259,51 @@
           </div>
           <el-button type="primary" icon="el-icon-plus" @click="addBucket">添加分段</el-button>
         </el-tab-pane>
+        <el-tab-pane label="导入导出" name="importExport">
+          <el-alert
+            type="warning"
+            show-icon
+            :closable="false"
+            title="导入会覆盖本地数据库（包括成绩/报告/设置等）。请先导出备份，再进行导入。"
+          />
+          <el-form-item label="导出数据库">
+            <el-button type="primary" icon="el-icon-download" :loading="isDbExporting" @click="handleDbExport">导出</el-button>
+            <span class="el-upload__tip">导出文件为 JSON，可用于在本页面恢复。</span>
+          </el-form-item>
+
+          <el-form-item label="导入数据库">
+            <el-upload
+              drag
+              action="#"
+              accept=".json"
+              :auto-upload="false"
+              :show-file-list="false"
+              :on-change="handleDbImportFileChange"
+            >
+              <i class="el-icon-upload"></i>
+              <div class="el-upload__text">将导出的 JSON 文件拖到此处，或<em>点击选择</em></div>
+              <div class="el-upload__tip" slot="tip">
+                <div v-if="dbImportPreview">
+                  <div>已选择：{{ dbImportPreview.fileName }}</div>
+                  <div>导出时间：{{ formatTime(dbImportPreview.exportedAt) }}</div>
+                  <div>表数量：{{ dbImportPreview.tableCount }}</div>
+                </div>
+                <div v-else>选择文件后会先校验有效性，通过后才允许导入。</div>
+              </div>
+            </el-upload>
+
+            <el-button
+              type="danger"
+              icon="el-icon-warning-outline"
+              :disabled="!dbImportData || isDbImporting"
+              :loading="isDbImporting"
+              style="margin-top: 12px"
+              @click="confirmDbImport"
+            >
+              导入并覆盖
+            </el-button>
+          </el-form-item>
+        </el-tab-pane>
       </el-tabs>
       <el-form-item>
         <el-button type="primary" @click="submitForm">保存</el-button>
@@ -289,10 +334,11 @@ import { parseTrieNodeByCodinds } from '../store/util/TrieTree'
 import db from '../store/util/Database'
 import { SettingState } from '../store/types'
 import { Action, namespace } from 'vuex-class'
-import { Form, Loading, Table } from 'element-ui'
+import { Form, Loading, MessageBox, Table } from 'element-ui'
 import aes from 'crypto-js/aes'
 import encUTF8 from 'crypto-js/enc-utf8'
 import punctuations from '../store/util/punctuation'
+import { EasyTyperDbExportV1, exportDatabase, importDatabase, parseDbExport, parseDbExportRaw, stringifyDbExport, validateDbExportV1 } from '../store/util/DbTransfer'
 
 interface KeyValue {
   key: string;
@@ -380,6 +426,14 @@ export default class Setting extends Vue {
   private isCodingLoading = false
 
   private punctuationForm = { key: '', value: '' }
+
+  private isDbExporting = false
+
+  private isDbImporting = false
+
+  private dbImportData: EasyTyperDbExportV1 | null = null
+
+  private dbImportPreview: { fileName: string; exportedAt: number; tableCount: number } | null = null
 
   private rules = {
     maxIndex: [
@@ -591,6 +645,132 @@ export default class Setting extends Vue {
   removeBucket (index: number): void {
     if (this.form.reportTimeBuckets.length > 1) {
       this.form.reportTimeBuckets.splice(index, 1)
+    }
+  }
+
+  formatTime (timestamp: number): string {
+    const dt = new Date(timestamp)
+    return isNaN(dt.getTime()) ? '-' : dt.toLocaleString()
+  }
+
+  private buildExportFileName (): string {
+    const dt = new Date()
+    const pad2 = (n: number) => String(n).padStart(2, '0')
+    const y = dt.getFullYear()
+    const m = pad2(dt.getMonth() + 1)
+    const d = pad2(dt.getDate())
+    const hh = pad2(dt.getHours())
+    const mm = pad2(dt.getMinutes())
+    const ss = pad2(dt.getSeconds())
+    return `easy-typer-db-${y}${m}${d}-${hh}${mm}${ss}.json`
+  }
+
+  private downloadTextFile (fileName: string, text: string): void {
+    const blob = new Blob([text], { type: 'application/json;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = fileName
+    link.click()
+    URL.revokeObjectURL(url)
+  }
+
+  async handleDbExport (): Promise<void> {
+    if (this.isDbExporting) return
+    this.isDbExporting = true
+    const loading = Loading.service({
+      lock: true,
+      text: '正在导出数据库，请稍候……',
+      spinner: 'el-icon-loading',
+      background: 'rgba(0, 0, 0, 0.7)'
+    })
+
+    try {
+      const data = await exportDatabase(db)
+      const json = stringifyDbExport(data)
+      this.downloadTextFile(this.buildExportFileName(), json)
+      this.$message({ message: '导出成功', type: 'success', showClose: true })
+    } catch (e) {
+      console.error(e)
+      this.$message({ message: e?.message || '导出失败', type: 'error', showClose: true, duration: 5000 })
+    } finally {
+      loading.close()
+      this.isDbExporting = false
+    }
+  }
+
+  handleDbImportFileChange (file: { raw: File }): void {
+    this.dbImportData = null
+    this.dbImportPreview = null
+    if (!file?.raw) return
+
+    const reader = new FileReader()
+    reader.onload = () => {
+      try {
+        const text = String(reader.result || '')
+        const raw = parseDbExportRaw(text)
+        const expectedTables = db.tables.map(t => t.name)
+        const valid = validateDbExportV1(raw, expectedTables)
+        if (!valid.ok) {
+          this.$message({ message: valid.reason, type: 'error', showClose: true, duration: 6000 })
+          return
+        }
+
+        const revived = parseDbExport(text) as EasyTyperDbExportV1
+        this.dbImportData = revived
+        this.dbImportPreview = {
+          fileName: file.raw.name,
+          exportedAt: revived.exportedAt,
+          tableCount: Object.keys(revived.tables || {}).length
+        }
+        this.$message({ message: '文件校验通过，可以导入', type: 'success', showClose: true })
+      } catch (e) {
+        console.error(e)
+        this.$message({ message: e?.message || '解析失败：请确认选择的是本页面导出的文件', type: 'error', showClose: true, duration: 6000 })
+      }
+    }
+    reader.readAsText(file.raw)
+  }
+
+  async confirmDbImport (): Promise<void> {
+    if (!this.dbImportData || this.isDbImporting) return
+
+    try {
+      await MessageBox.confirm(
+        '导入会清空并覆盖本地数据库的所有数据（包括成绩/报告/设置等）。是否继续？',
+        '确认导入',
+        {
+          confirmButtonText: '继续导入',
+          cancelButtonText: '取消',
+          type: 'warning',
+          dangerouslyUseHTMLString: false
+        }
+      )
+    } catch {
+      return
+    }
+
+    this.isDbImporting = true
+    const loading = Loading.service({
+      lock: true,
+      text: '正在导入数据库，请勿关闭页面……',
+      spinner: 'el-icon-loading',
+      background: 'rgba(0, 0, 0, 0.7)'
+    })
+
+    try {
+      await importDatabase(db, this.dbImportData)
+      await MessageBox.alert('导入成功，即将刷新页面以加载新数据。', '完成', {
+        type: 'success',
+        confirmButtonText: '刷新'
+      })
+      location.reload()
+    } catch (e) {
+      console.error(e)
+      this.$message({ message: e?.message || '导入失败', type: 'error', showClose: true, duration: 6000 })
+    } finally {
+      loading.close()
+      this.isDbImporting = false
     }
   }
 }
