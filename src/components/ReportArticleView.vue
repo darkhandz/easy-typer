@@ -1,32 +1,11 @@
 <template>
   <div class="report-article-view">
-    <div v-if="achievement" class="stats-table">
-      <el-table :data="[achievement]" border size="middle" :show-header="true">
-        <el-table-column prop="typeSpeed" label="速度" width="68" align="center"/>
-        <el-table-column prop="hitSpeed" label="击键" width="64" align="center"/>
-        <el-table-column prop="contentLength" label="字数" width="70" align="center"/>
-        <el-table-column prop="codeLength" label="码长" width="50" align="center"/>
-        <el-table-column prop="accuracy" label="键准(%)" width="80" align="center"/>
-        <el-table-column prop="replace" label="回改" width="68" align="center"/>
-        <el-table-column prop="error" label="错字" width="68" align="center"/>
-        <el-table-column prop="phraseRate" label="打词(%)" width="80" align="center"/>
-        <el-table-column label="用时(s)" width="90" align="center">
-          <template slot-scope="scope">
-            {{ formatUsedTime(scope.row.usedTime) }}
-          </template>
-        </el-table-column>
-        <el-table-column prop="finishedTime" label="打字时间" width="162" align="center">
-          <template slot-scope="scope">
-            {{ formatFinishedTime(scope.row.finishedTime) }}
-          </template>
-        </el-table-column>
-      </el-table>
-    </div>
     <div class="article-content">
       <span
         v-for="(char, index) in contentChars"
         :key="index"
         class="char-item"
+        :data-idx="index"
         :class="{ 'highlight-flash': highlightIdx === index }"
         :style="getCharStyle(index)"
       >
@@ -45,8 +24,6 @@
 <script lang="ts">
 import { Component, Vue, Prop } from 'vue-property-decorator'
 import { namespace } from 'vuex-class'
-import dayjs from 'dayjs'
-import { Achievement } from '@/store/types'
 
 const setting = namespace('setting')
 
@@ -68,9 +45,6 @@ export default class ReportArticleView extends Vue {
   @Prop({ type: Number, default: -1 })
   private highlightIdx!: number
 
-  @Prop({ type: Object, default: null })
-  private achievement!: Achievement | null
-
   @setting.State('reportColorError')
   private colorError!: string
 
@@ -87,20 +61,6 @@ export default class ReportArticleView extends Vue {
 
   formatDuration (ms: number): string {
     return (ms / 1000).toFixed(2)
-  }
-
-  formatUsedTime (ms: number): string {
-    const seconds = ms / 1000
-    if (seconds < 60) {
-      return seconds.toFixed(2)
-    }
-    const mins = Math.floor(seconds / 60)
-    const secs = (seconds % 60).toFixed(3)
-    return `${mins}:${secs}`
-  }
-
-  formatFinishedTime (timestamp: number): string {
-    return dayjs(timestamp).format('YYYY/MM/DD HH:mm:ss')
   }
 
   getCharStyle (index: number): Record<string, string> {
@@ -132,6 +92,34 @@ export default class ReportArticleView extends Vue {
       color: textColor
     }
   }
+
+  scrollToIdx (idx: number): void {
+    if (idx < 0) return
+    const target = this.$el.querySelector(`.char-item[data-idx="${idx}"]`) as HTMLElement | null
+    if (!target) return
+
+    const scrollbar = (this.$el as HTMLElement).closest('.report-right-scroll') as HTMLElement | null
+    if (!scrollbar) return
+
+    const wrap = scrollbar.querySelector('.el-scrollbar__wrap') as HTMLElement | null
+    const scrollContainer = wrap
+    if (!scrollContainer) return
+
+    const containerRect = scrollContainer.getBoundingClientRect()
+    const targetRect = target.getBoundingClientRect()
+
+    const maxTop = Math.max(0, scrollContainer.scrollHeight - scrollContainer.clientHeight)
+    const targetCenterY = targetRect.top + targetRect.height / 2
+    const containerCenterY = containerRect.top + containerRect.height / 2
+    let nextTop = scrollContainer.scrollTop + (targetCenterY - containerCenterY)
+    nextTop = Math.max(0, Math.min(nextTop, maxTop))
+
+    try {
+      scrollContainer.scrollTo({ top: nextTop, behavior: 'smooth' as ScrollBehavior })
+    } catch {
+      scrollContainer.scrollTop = nextTop
+    }
+  }
 }
 </script>
 
@@ -141,10 +129,6 @@ export default class ReportArticleView extends Vue {
   background: var(--text-background-color);
   border-radius: 4px;
   border: 1px solid var(--level2-border-color);
-
-  .stats-table {
-    margin-bottom: 10px;
-  }
 
   .article-content {
     line-height: 1.3;

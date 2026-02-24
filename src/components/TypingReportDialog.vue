@@ -21,12 +21,36 @@
         />
       </div>
       <div class="report-right">
-        <ReportArticleView
-          :content="content"
-          :charData="charDataMap"
-          :highlightIdx="highlightIdx"
-          :achievement="achievement"
-        />
+        <div v-if="achievement" class="stats-table">
+          <el-table :data="[achievement]" border size="middle" :show-header="true">
+            <el-table-column prop="typeSpeed" label="速度" width="68" align="center"/>
+            <el-table-column prop="hitSpeed" label="击键" width="64" align="center"/>
+            <el-table-column prop="contentLength" label="字数" width="70" align="center"/>
+            <el-table-column prop="codeLength" label="码长" width="50" align="center"/>
+            <el-table-column prop="accuracy" label="键准(%)" width="80" align="center"/>
+            <el-table-column prop="replace" label="回改" width="68" align="center"/>
+            <el-table-column prop="error" label="错字" width="68" align="center"/>
+            <el-table-column prop="phraseRate" label="打词(%)" width="80" align="center"/>
+            <el-table-column label="用时(s)" width="90" align="center">
+              <template slot-scope="scope">
+                {{ formatUsedTime(scope.row.usedTime) }}
+              </template>
+            </el-table-column>
+            <el-table-column prop="finishedTime" label="打字时间" width="162" align="center">
+              <template slot-scope="scope">
+                {{ formatFinishedTime(scope.row.finishedTime) }}
+              </template>
+            </el-table-column>
+          </el-table>
+        </div>
+        <el-scrollbar class="report-right-scroll">
+          <ReportArticleView
+            ref="articleView"
+            :content="content"
+            :charData="charDataMap"
+            :highlightIdx="highlightIdx"
+          />
+        </el-scrollbar>
       </div>
     </div>
   </el-dialog>
@@ -36,6 +60,7 @@
 import { Component, Vue, Prop, Watch } from 'vue-property-decorator'
 import { Achievement, TypingReportChar } from '@/store/types'
 import { namespace } from 'vuex-class'
+import dayjs from 'dayjs'
 import ReportFilter from './ReportFilter.vue'
 import ReportCharTable from './ReportCharTable.vue'
 import ReportArticleView from './ReportArticleView.vue'
@@ -145,20 +170,45 @@ export default class TypingReportDialog extends Vue {
     }
   }
 
-  handleCharClick (idx: number): void {
+  async handleCharClick (idx: number): Promise<void> {
     // 清除之前的定时器
     if (this.highlightTimer !== null) {
       clearTimeout(this.highlightTimer)
     }
 
+    // 点击同一个字符时也能重新触发动画/滚动
+    if (this.highlightIdx === idx) {
+      this.highlightIdx = -1
+      await this.$nextTick()
+    }
+
     this.highlightIdx = idx
-    // 重置高亮，以便下次点击同一个字符时也能触发动画
-    this.$nextTick(() => {
-      this.highlightTimer = window.setTimeout(() => {
-        this.highlightIdx = -1
-        this.highlightTimer = null
-      }, 1000)
-    })
+    await this.$nextTick()
+
+    const view = this.$refs.articleView as unknown
+    const maybeView = view as { scrollToIdx?: (idx: number) => void } | null
+    if (maybeView && typeof maybeView.scrollToIdx === 'function') {
+      maybeView.scrollToIdx(idx)
+    }
+
+    this.highlightTimer = window.setTimeout(() => {
+      this.highlightIdx = -1
+      this.highlightTimer = null
+    }, 1000)
+  }
+
+  formatUsedTime (ms: number): string {
+    const seconds = ms / 1000
+    if (seconds < 60) {
+      return seconds.toFixed(2)
+    }
+    const mins = Math.floor(seconds / 60)
+    const secs = (seconds % 60).toFixed(3)
+    return `${mins}:${secs}`
+  }
+
+  formatFinishedTime (timestamp: number): string {
+    return dayjs(timestamp).format('YYYY/MM/DD HH:mm:ss')
   }
 }
 </script>
@@ -180,7 +230,19 @@ export default class TypingReportDialog extends Vue {
 
     .report-right {
       flex: 1;
-      overflow: auto;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+
+    .stats-table {
+      margin-bottom: 10px;
+    }
+
+    .report-right-scroll {
+      flex: 1;
+      min-height: 0;
     }
   }
 }
